@@ -1,0 +1,37 @@
+.home-container {
+  min-height: 100vh;
+  background-color: gray;
+
+  h1 {
+    color: #1a1a1a;
+  }
+
+  .text-color-secondary {
+    color: #111213;
+  }
+
+  a.text-primary {
+    color: #0d6efd;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .university-logo {
+    display: inline-block;
+    width: 80%;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  .card-home {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+}

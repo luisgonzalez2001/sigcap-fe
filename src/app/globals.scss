@@ -1,0 +1,120 @@
+@import "bootstrap/dist/css/bootstrap-grid.css";
+@import "bootstrap/dist/css/bootstrap-utilities.css";
+/* @import "primereact/resources/themes/lara-light-cyan/theme.css"; */
+/* @import "primereact/resources/themes/bootstrap4-light-blue/theme.css"; */
+@import "primereact/resources/themes/mdc-light-indigo/theme.css";
+@import "primeicons/primeicons.css";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+$background: #F1F4FA;
+$fontColor: #16245E;
+$altColor: #0370B9;
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow: hidden;
+  margin: 0;
+}
+
+
+//Login
+.login-sec {
+  width: 100vw;
+  height: 100vh;
+
+  .sec-form {
+    height: 100%;
+    width: 100%;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+  }
+
+}
+
+//Layout
+.layout-sec {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: #F1F4FA;
+
+  .sec-container {
+    overflow: auto;
+    padding-bottom: 2rem;
+  }
+}
+
+.blue-color{
+  color: $fontColor;
+}
+
+.light-color {
+  color: $altColor;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.btn-hidden {
+  display: none !important;
+}
+
+.icon-locked-register {
+  color: #000;
+  transform: rotateY(180deg);
+}
+
+.icon-unlocked-register {
+  color: #0009;
+  transform: rotateY(180deg);
+}
+/* 
+
+
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+} */
