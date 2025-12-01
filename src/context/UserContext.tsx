@@ -2,10 +2,12 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 interface User {
   id: string;
-  username: string;
+  name: string;
+  lastName: string;
   email: string;
   password: string;
-  rol: string;
+  rol: "admin" | "socio";
+  active: boolean;
 }
 
 interface UserContextProps {

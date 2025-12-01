@@ -12,14 +12,17 @@ import { Message } from "primereact/message";
 import { Dialog } from "primereact/dialog";
 import { ProgressSpinner } from "primereact/progressspinner";
 
+//types
+import { CreateUserDto } from "@/types/UserDto";
+
 interface UserFormProps {
   isSignUp: boolean;
 }
 
-export const SignUP = ({ isSignUp }: UserFormProps) => {
+export const SignUP = ({ isSignUp = true }: UserFormProps) => {
   const [name, setName] = useState("");
+  const [lastName, setlastName] = useState("");
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,9 +40,9 @@ export const SignUP = ({ isSignUp }: UserFormProps) => {
       return;
     }
 
-    const userData = isSignUp
-      ? { name, email, username, password }
-      : { name, email, username, password: "cutonala1234" };
+    const userData: CreateUserDto = isSignUp
+      ? { name, lastName, email, password }
+      : { name, lastName, email, password: "1234" };
 
     setTimeout(async () => {
       try {
@@ -69,8 +72,8 @@ export const SignUP = ({ isSignUp }: UserFormProps) => {
 
         setUserCreated(true);
         setName("");
+        setlastName("");
         setEmail("");
-        setUsername("");
         setPassword("");
         setRepeatPassword("");
       } catch {
@@ -115,7 +118,18 @@ export const SignUP = ({ isSignUp }: UserFormProps) => {
               className="w-full"
               required
             />
-            <label htmlFor="name">Nombre</label>
+            <label htmlFor="name">Nombre(s)</label>
+          </span>
+
+          <span className="p-float-label">
+            <InputText
+              id="lastname"
+              value={lastName}
+              onChange={(e) => setlastName(e.target.value)}
+              className="w-full"
+              required
+            />
+            <label htmlFor="username">Apellido(s)</label>
           </span>
 
           <span className="p-float-label">
@@ -130,20 +144,9 @@ export const SignUP = ({ isSignUp }: UserFormProps) => {
             <label htmlFor="email">Email</label>
           </span>
 
-          <span className="p-float-label">
-            <InputText
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full"
-              required
-            />
-            <label htmlFor="username">Usuario</label>
-          </span>
-
           {isSignUp && (
             <>
-              <span className="p-float-label">
+              <span className="p-float-label w-full">
                 <Password
                   id="password"
                   value={password}
@@ -156,7 +159,7 @@ export const SignUP = ({ isSignUp }: UserFormProps) => {
                 <label htmlFor="password">Contraseña</label>
               </span>
 
-              <span className="p-float-label">
+              <span className="p-float-label w-full">
                 <Password
                   id="repeatPassword"
                   value={repeatPassword}

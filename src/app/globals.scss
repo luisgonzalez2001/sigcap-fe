@@ -10,9 +10,9 @@
   --foreground: #171717;
 }
 
-$background: #F1F4FA;
-$fontColor: #16245E;
-$altColor: #0370B9;
+$background: #f1f4fa;
+$fontColor: #16245e;
+$altColor: #0370b9;
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -24,10 +24,8 @@ $altColor: #0370B9;
 html,
 body {
   max-width: 100vw;
-  overflow: hidden;
   margin: 0;
 }
-
 
 //Login
 .login-sec {
@@ -41,7 +39,6 @@ body {
     align-items: center;
     justify-content: center;
   }
-
 }
 
 //Layout
@@ -51,7 +48,7 @@ body {
   position: absolute;
   width: 100%;
   height: 100%;
-  background-color: #F1F4FA;
+  background-color: #f1f4fa;
 
   .sec-container {
     overflow: auto;
@@ -59,7 +56,7 @@ body {
   }
 }
 
-.blue-color{
+.blue-color {
   color: $fontColor;
 }
 
@@ -75,7 +72,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-
 
 .btn-hidden {
   display: none !important;

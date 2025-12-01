@@ -57,7 +57,7 @@ export const Login = () => {
         localStorage.setItem("user", JSON.stringify(data.user));
         setUserUser(data.user);
         console.log("inicio correcto");
-        router.push("/tracking");
+        router.push("/dashboard");
       } catch (error: unknown) {
         if (error instanceof Error) {
           setErrorMessage(error.message || "Ha ocurrido un error.");
@@ -102,6 +102,7 @@ export const Login = () => {
               feedback={false}
               toggleMask
               className="w-full"
+              style={{ width: "100%" }}
             />
             <label htmlFor="password">Contraseña</label>
           </span>

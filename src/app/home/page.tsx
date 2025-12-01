@@ -38,7 +38,7 @@ export const Home = () => {
           y mejora la gestión operativa
         </p>
 
-        {!user?.username && (
+        {!user?.name && (
           <div
             className="mt-4"
             style={{ display: "flex", gap: "1rem", justifyContent: "center" }}

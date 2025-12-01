@@ -12,9 +12,9 @@ import { Sidebar } from "primereact/sidebar";
 import { Menu } from "primereact/menu";
 import type { MenuItem } from "primereact/menuitem";
 
-import "./NavBar.scss";
+import "./Header.scss";
 
-const Navbar = () => {
+const Header = () => {
   const { user, setUserUser } = useUser();
   const router = useRouter();
   const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -142,11 +142,11 @@ const Navbar = () => {
   return (
     <>
       {/* Header principal */}
-      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-100">
+        <div className="px-4 sm:px-2 lg:px-4">
+          <div className="flex justify-content-between align-items-center">
             {/* Logo y botón de menú */}
-            <div className="flex items-center gap-4">
+            <div className="flex align-items-center gap-4">
               {user && (
                 <Button
                   icon="pi pi-bars"
@@ -156,68 +156,20 @@ const Navbar = () => {
                   severity="secondary"
                 />
               )}
-              <Link href="/" className="flex items-center">
-                <h1 className="text-xl sm:text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors">
+              <Link
+                href="/dashboard"
+                className="flex align-items-center"
+                style={{ textDecoration: "none", color: "#000" }}
+              >
+                <h1 className="text-xl sm:text-2xl font-bold cursor-pointer">
                   <i className="pi pi-shield mr-2"></i>
                   SIGCAP
                 </h1>
               </Link>
             </div>
 
-            {/* Menú desktop - solo visible en pantallas grandes si hay usuario */}
-            {user && (
-              <nav className="hidden lg:flex items-center gap-6">
-                <Link
-                  href="/"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/socios"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                >
-                  Socios
-                </Link>
-                <Link
-                  href="/ahorros"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                >
-                  Ahorros
-                </Link>
-                <Link
-                  href="/prestamos"
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                >
-                  Préstamos
-                </Link>
-                {user.rol === "admin" && (
-                  <>
-                    <Link
-                      href="/scoring"
-                      className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                    >
-                      Scoring
-                    </Link>
-                    <Link
-                      href="/reportes"
-                      className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                    >
-                      Reportes
-                    </Link>
-                    <Link
-                      href="/users"
-                      className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-                    >
-                      Administración
-                    </Link>
-                  </>
-                )}
-              </nav>
-            )}
-
             {/* Sección derecha */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex align-items-center gap-2 sm:gap-4">
               {user ? (
                 <>
                   {/* Notificaciones */}
@@ -226,13 +178,16 @@ const Navbar = () => {
                     rounded
                     text
                     severity="secondary"
-                    badge="3"
                     badgeClassName="p-badge-danger"
                     className="hidden sm:flex"
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                    }}
                   />
 
                   {/* Avatar con nombre (solo en desktop) */}
-                  <div className="hidden lg:flex items-center gap-2">
+                  <div className="hidden lg:flex align-items-center gap-2">
                     <span className="font-semibold text-gray-700">
                       {user.name}
                     </span>
@@ -240,7 +195,8 @@ const Navbar = () => {
                       <Avatar
                         label={getUserInitials()}
                         shape="circle"
-                        className="bg-blue-500 text-white cursor-pointer hover:bg-blue-600 transition-colors"
+                        className="text-white cursor-pointer hover:bg-blue-600 transition-colors"
+                        style={{ backgroundColor: "blue" }}
                       />
                     </Link>
                   </div>
@@ -255,7 +211,7 @@ const Navbar = () => {
                   </Link>
                 </>
               ) : (
-                <>
+                <div className="flex align-items-center gap-4">
                   {/* Botones de auth cuando no hay usuario */}
                   <Link href="/auth/signup" className="hidden sm:block">
                     <Button
@@ -271,10 +227,11 @@ const Navbar = () => {
                       label="Ingresar"
                       icon="pi pi-sign-in"
                       size="small"
-                      className="bg-blue-600 border-blue-600"
+                      severity="secondary"
+                      outlined
                     />
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -314,4 +271,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default Header;
