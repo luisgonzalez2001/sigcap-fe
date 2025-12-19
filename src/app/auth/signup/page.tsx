@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import api from "@/services/api";
+import type { AxiosError } from "axios";
 
 // PrimeReact
 import { Card } from "primereact/card";
@@ -23,6 +25,7 @@ export const SignUP = ({ isSignUp = true }: UserFormProps) => {
   const [name, setName] = useState("");
   const [lastName, setlastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(""); // Nuevo campo
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,43 +44,35 @@ export const SignUP = ({ isSignUp = true }: UserFormProps) => {
     }
 
     const userData: CreateUserDto = isSignUp
-      ? { name, lastName, email, password }
-      : { name, lastName, email, password: "1234" };
+      ? { name, lastName, email, phoneNumber, password }
+      : { name, lastName, email, phoneNumber, password: "1234" };
 
     setTimeout(async () => {
       try {
-        const url = isSignUp
-          ? "http://localhost:3000/auth/signup"
-          : "http://localhost:3000/auth/signup/add-user";
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify(userData),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          if (response.status === 409) {
-            setError(
-              "Este correo electrónico ya está registrado. Por favor, utiliza otro."
-            );
-          } else {
-            setError(errorData.message || "Error al crear el usuario.");
-          }
-          return;
-        }
-
+        const url = isSignUp ? "/auth/signup" : "/auth/signup/add-user";
+        const headers = isSignUp
+          ? { "Content-Type": "application/json" }
+          : {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            };
+        await api.post(url, userData, { headers });
         setUserCreated(true);
         setName("");
         setlastName("");
         setEmail("");
+        setPhoneNumber("");
         setPassword("");
         setRepeatPassword("");
-      } catch {
-        setError("Error al crear el usuario.");
+      } catch (error) {
+        const err = error as AxiosError<{ message?: string }>;
+        if (err.response && err.response.status === 409) {
+          setError(
+            "Este correo electrónico ya está registrado. Por favor, utiliza otro."
+          );
+        } else {
+          setError(err.response?.data?.message || "Error al crear el usuario.");
+        }
       } finally {
         setLoading(false);
       }
@@ -142,6 +137,18 @@ export const SignUP = ({ isSignUp = true }: UserFormProps) => {
               required
             />
             <label htmlFor="email">Email</label>
+          </span>
+
+          <span className="p-float-label">
+            <InputText
+              id="phoneNumber"
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full"
+              required
+            />
+            <label htmlFor="phoneNumber">Teléfono</label>
           </span>
 
           {isSignUp && (

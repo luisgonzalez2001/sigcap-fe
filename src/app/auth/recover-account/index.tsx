@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import api from "@/services/api";
+import Link from "next/link";
+import type { AxiosError } from "axios";
 
 // PrimeReact
 import { Card } from "primereact/card";
@@ -25,30 +27,16 @@ export const RecoverAccount = () => {
 
     setTimeout(async () => {
       try {
-        const response = await fetch(
-          "http://localhost:3000/auth/recover-account",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            setErrorMessage("Usuario no encontrado.");
-          } else {
-            setErrorMessage(data.message || "Ha ocurrido un error.");
-          }
-          return;
-        }
-
+        await api.post("/auth/recover-account", { email });
         setSuccessMessage("Se ha enviado un correo de recuperación.");
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message || "Ha ocurrido un error.");
+      } catch (error) {
+        const err = error as AxiosError<{ message?: string }>;
+        if (err.response && err.response.status === 404) {
+          setErrorMessage("Usuario no encontrado.");
+        } else {
+          setErrorMessage(
+            err.response?.data?.message || "Ha ocurrido un error."
+          );
         }
       } finally {
         setLoading(false);
@@ -103,7 +91,7 @@ export const RecoverAccount = () => {
 
         <p className="mt-4 text-center text-sm">
           ¿No tienes una cuenta?{" "}
-          <Link to="/auth/signup" className="text-primary">
+          <Link href="/auth/signup" className="text-primary">
             Regístrate
           </Link>
         </p>

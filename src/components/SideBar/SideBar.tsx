@@ -30,7 +30,10 @@ const SideBar: React.FC = () => {
     {
       label: "Socios",
       icon: "pi pi-users",
-      command: () => setSelectedView("socios"),
+      command: () => {
+        setSelectedView("socios");
+        router.push("/socios");
+      },
     },
     {
       label: "Ahorros",

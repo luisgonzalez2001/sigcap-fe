@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import api from "@/services/api";
+import { useSearchParams, useRouter } from "next/navigation";
+import type { AxiosError } from "axios";
 
 // PrimeReact
 import { Card } from "primereact/card";
@@ -12,9 +14,9 @@ import { Dialog } from "primereact/dialog";
 import { ProgressSpinner } from "primereact/progressspinner";
 
 export const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
@@ -47,28 +49,12 @@ export const ResetPassword = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:3000/auth/recover", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
-      });
-
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.message || "Error al actualizar contraseña");
-
-      await fetch(`http://localhost:3000/auth/verify?token=${token}`, {
-        headers: { "Content-Type": "application/json" },
-      });
-
+      await api.put("/auth/recover", { token, password });
       setSuccess("Contraseña actualizada correctamente");
-      setTimeout(() => navigate("/auth/login"), 3000);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Ocurrió un error inesperado");
-      }
+      setTimeout(() => router.push("/auth/login"), 3000);
+    } catch (error) {
+      const err = error as AxiosError<{ message?: string }>;
+      setError(err.response?.data?.message || "Error al actualizar contraseña");
     } finally {
       setLoading(false);
     }

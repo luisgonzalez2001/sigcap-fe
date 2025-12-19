@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useUser } from "../../../context/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import api from "@/services/api";
+import type { AxiosError } from "axios";
 
 // PrimeReact
 import { Card } from "primereact/card";
@@ -29,38 +31,33 @@ export const Login = () => {
 
     setTimeout(async () => {
       try {
-        const response = await fetch("http://localhost:3000/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-          switch (response.status) {
-            case 401:
-              setErrorMessage("Correo electrónico no verificado.");
-              return;
-            case 404:
-              setErrorMessage("Usuario no encontrado.");
-              return;
-            case 403:
-              setErrorMessage("Contraseña incorrecta.");
-              return;
-            default:
-              setErrorMessage(data.message || "Ha ocurrido un error.");
-              return;
-          }
-        }
+        const { data } = await api.post("/auth/login", { email, password });
 
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         setUserUser(data.user);
         console.log("inicio correcto");
         router.push("/dashboard");
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          setErrorMessage(error.message || "Ha ocurrido un error.");
+      } catch (error) {
+        const err = error as AxiosError<{ message?: string }>;
+        if (err.response) {
+          switch (err.response.status) {
+            case 401:
+              setErrorMessage("Correo electrónico no verificado.");
+              break;
+            case 404:
+              setErrorMessage("Usuario no encontrado.");
+              break;
+            case 403:
+              setErrorMessage("Contraseña incorrecta.");
+              break;
+            default:
+              setErrorMessage(
+                err.response.data?.message || "Ha ocurrido un error."
+              );
+          }
+        } else {
+          setErrorMessage(err.message || "Ha ocurrido un error.");
         }
       } finally {
         setLoading(false);

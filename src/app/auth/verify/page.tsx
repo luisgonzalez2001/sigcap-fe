@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import api from "@/services/api";
 
 // PrimeReact
 import { ProgressSpinner } from "primereact/progressspinner";
@@ -19,15 +20,7 @@ export const EmailVerified = () => {
   useEffect(() => {
     const verify = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:3000/auth/verify?token=${token}`,
-          {
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        if (!response.ok) throw new Error("Error al verificar email");
-
+        await api.get(`/auth/verify?token=${token}`);
         setTimeout(() => {
           setSuccess(true);
           setTimeout(() => router.push("/auth/login"), 10000);
