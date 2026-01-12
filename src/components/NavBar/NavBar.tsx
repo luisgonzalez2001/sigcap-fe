@@ -36,7 +36,7 @@ const Navbar = () => {
               label: "Dashboard",
               icon: "pi pi-home",
               command: () => {
-                router.push("/");
+                router.push("/dashboard");
                 setSidebarVisible(false);
               },
             },
@@ -168,7 +168,7 @@ const Navbar = () => {
             {user && (
               <nav className="hidden lg:flex items-center gap-6">
                 <Link
-                  href="/"
+                  href="/dashboard"
                   className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
                 >
                   Dashboard

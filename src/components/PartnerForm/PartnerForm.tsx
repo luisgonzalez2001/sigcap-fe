@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
@@ -10,13 +11,17 @@ interface PartnerFormProps {
   isEditing: boolean;
   crearUsuario: boolean;
   setCrearUsuario: (val: boolean) => void;
-  formData: { id_usuario: string; monto_semanal: number };
-  setFormData: (val: { id_usuario: string; monto_semanal: number }) => void;
+  formData: { id_usuario: string; monto_semanal: number; id?: string };
+  setFormData: (val: {
+    id_usuario: string;
+    monto_semanal: number;
+    id?: string;
+  }) => void;
   userForm: CreateUserDto;
   setUserForm: (val: CreateUserDto) => void;
   usuarios: Usuario[];
   onHide: () => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
   loading?: boolean;
 }
 
@@ -34,6 +39,26 @@ const PartnerForm = ({
   onSave,
   loading = false,
 }: PartnerFormProps) => {
+  // Estado para la búsqueda de usuarios
+  const [searchValue, setSearchValue] = useState("");
+
+  // Filtrar usuarios por nombre
+  const filteredUsuarios = usuarios.filter((u) => {
+    if (!searchValue.trim()) return true;
+    const fullName = `${u.name} ${u.lastName}`.toLowerCase();
+    return fullName.includes(searchValue.toLowerCase());
+  });
+
+  // Resetear búsqueda cuando se cierra el diálogo
+  useEffect(() => {
+    if (!visible) {
+      setSearchValue("");
+    }
+  }, [visible]);
+
+  // Usuario seleccionado del dropdown
+  const selectedUser = usuarios.find((u) => u.id === formData.id_usuario);
+
   return (
     <Dialog
       visible={visible}
@@ -43,17 +68,63 @@ const PartnerForm = ({
       className="p-fluid"
       onHide={onHide}
     >
-      <div className="mb-3">
-        <label>
-          <input
-            type="checkbox"
-            checked={crearUsuario}
-            onChange={(e) => setCrearUsuario(e.target.checked)}
-          />
-          Crear nuevo usuario
-        </label>
-      </div>
-      {crearUsuario ? (
+      {!isEditing && (
+        <div className="mb-3">
+          <label>
+            <input
+              type="checkbox"
+              checked={crearUsuario}
+              onChange={(e) => setCrearUsuario(e.target.checked)}
+            />
+            Crear nuevo usuario
+          </label>
+        </div>
+      )}
+
+      {isEditing ? (
+        <>
+          {/* Modo edición: Mostrar todos los campos pero solo monto_semanal editable */}
+          <div className="grid gap-2">
+            <InputText
+              placeholder="Nombre(s)"
+              value={userForm.name}
+              className="w-full"
+              disabled
+            />
+            <InputText
+              placeholder="Apellido(s)"
+              value={userForm.lastName}
+              className="w-full"
+              disabled
+            />
+            <InputText
+              placeholder="Email"
+              value={userForm.email}
+              className="w-full"
+              disabled
+            />
+            <InputText
+              placeholder="Teléfono"
+              value={userForm.phoneNumber}
+              className="w-full"
+              disabled
+            />
+            <InputNumber
+              id="monto_semanal"
+              value={formData.monto_semanal}
+              onValueChange={(e) =>
+                setFormData({ ...formData, monto_semanal: e.value || 0 })
+              }
+              mode="decimal"
+              min={0}
+              className="w-full"
+              placeholder="Monto semanal"
+              useGrouping={false}
+              inputMode="numeric"
+            />
+          </div>
+        </>
+      ) : crearUsuario ? (
         <>
           <div className="grid gap-2">
             <InputText
@@ -108,29 +179,121 @@ const PartnerForm = ({
         </>
       ) : (
         <>
+          {/* Buscador de usuarios */}
           <div className="mb-3">
+            <label
+              style={{
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "0.5rem",
+                display: "block",
+              }}
+            >
+              Buscar Usuario
+            </label>
+            <span className="p-input-icon-left w-full">
+              <i
+                className="pi pi-search"
+                style={{ marginLeft: "0.75rem", color: "#9ca3af" }}
+              />
+              <InputText
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder="Buscar por nombre..."
+                className="w-full"
+                style={{
+                  borderRadius: "8px",
+                  border: "1px solid #e5e7eb",
+                  padding: "0.75rem 1rem 0.75rem 2.5rem",
+                }}
+              />
+            </span>
+            {searchValue && (
+              <small style={{ color: "#6b7280" }}>
+                {filteredUsuarios.length} usuario(s) encontrado(s)
+              </small>
+            )}
+          </div>
+
+          {/* Dropdown de usuarios filtrados */}
+          <div className="mb-3">
+            <label
+              style={{
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "0.5rem",
+                display: "block",
+              }}
+            >
+              Seleccionar Usuario
+            </label>
             <Dropdown
               value={formData.id_usuario}
               options={
-                usuarios.length > 0
-                  ? usuarios.map((u) => ({
-                      label: `${u.name} ${u.lastName} (${u.email})`,
+                filteredUsuarios.length > 0
+                  ? filteredUsuarios.map((u) => ({
+                      label: `${u.name} ${u.lastName}`,
                       value: u.id,
                     }))
                   : []
               }
-              onChange={(e) =>
-                setFormData({ ...formData, id_usuario: e.value })
-              }
+              onChange={(e) => {
+                setFormData({ ...formData, id_usuario: e.value });
+                // Actualizar userForm con los datos del usuario seleccionado
+                const user = usuarios.find((u) => u.id === e.value);
+                if (user) {
+                  setUserForm({
+                    email: user.email,
+                    name: user.name,
+                    lastName: user.lastName,
+                    phoneNumber: user.phoneNumber,
+                    password: "",
+                  });
+                }
+              }}
               placeholder={
                 usuarios.length === 0
                   ? "No hay usuarios disponibles"
+                  : filteredUsuarios.length === 0
+                  ? "No se encontraron usuarios"
                   : "Selecciona un usuario"
               }
               className="w-full"
               disabled={usuarios.length === 0}
+              showClear
+              style={{ borderRadius: "8px" }}
             />
           </div>
+
+          {selectedUser && (
+            <div className="grid gap-2 mb-3">
+              <InputText
+                placeholder="Nombre(s)"
+                value={selectedUser.name}
+                className="w-full"
+                disabled
+              />
+              <InputText
+                placeholder="Apellido(s)"
+                value={selectedUser.lastName}
+                className="w-full"
+                disabled
+              />
+              <InputText
+                placeholder="Email"
+                value={selectedUser.email}
+                className="w-full"
+                disabled
+              />
+              <InputText
+                placeholder="Teléfono"
+                value={selectedUser.phoneNumber}
+                className="w-full"
+                disabled
+              />
+            </div>
+          )}
+
           <div className="mb-3">
             <InputNumber
               id="monto_semanal"

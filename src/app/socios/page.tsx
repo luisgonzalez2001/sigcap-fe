@@ -2,21 +2,19 @@
 
 import { useState, useRef, useEffect } from "react";
 import api from "@/services/api";
-import { DataTable } from "primereact/datatable";
-import { Column } from "primereact/column";
-import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
-import { InputText } from "primereact/inputtext";
 import { ConfirmDialog } from "primereact/confirmdialog";
 import { Card } from "primereact/card";
-import { Toolbar } from "primereact/toolbar";
 import { FilterMatchMode } from "primereact/api";
 import { Partner } from "@/types/Partner";
 import { CreateUserDto, User } from "@/types/UserDto";
 import type { AxiosError } from "axios";
-import type { DataTableFilterMeta } from "primereact/datatable";
+import type { DataTable, DataTableFilterMeta } from "primereact/datatable";
 import PartnerForm from "@/components/PartnerForm/PartnerForm";
 import { totalMontoSemanal } from "@/utils/formulas";
+import SociosTable from "@/components/Dashboard/SociosTable";
+import SociosCarousel from "@/components/Dashboard/SociosCarousel";
+import type { ResumenGeneral, ResumenSocio } from "@/types/CajaSemanal";
 
 const SociosPage = () => {
   const toast = useRef<Toast>(null);
@@ -24,6 +22,9 @@ const SociosPage = () => {
 
   const [socios, setSocios] = useState<Partner[]>([]);
   const [usuarios, setUsuarios] = useState<User[]>([]);
+  const [resumenPorSocio, setResumenPorSocio] = useState<
+    Map<number, ResumenSocio>
+  >(new Map());
   const [dialogVisible, setDialogVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [globalFilterValue, setGlobalFilterValue] = useState("");
@@ -31,7 +32,11 @@ const SociosPage = () => {
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     id_usuario: { value: null, matchMode: FilterMatchMode.EQUALS },
   });
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    id_usuario: string;
+    monto_semanal: number;
+    id?: string;
+  }>({
     id_usuario: "",
     monto_semanal: 0,
   });
@@ -45,10 +50,29 @@ const SociosPage = () => {
   });
 
   useEffect(() => {
+    // Cargar socios
     api.get("/partners").then((res) => setSocios(res.data));
+
+    // Cargar usuarios disponibles
     api
       .get("/partners/available-users")
       .then((res) => setUsuarios(Array.isArray(res.data) ? res.data : []));
+
+    // Cargar resumen de caja semanal para obtener semanas dadas y total ahorrado
+    api
+      .get<ResumenGeneral>("/caja-semanal/resumen")
+      .then((res) => {
+        const mapa = new Map<number, ResumenSocio>();
+        res.data.detalle_por_socio?.forEach((detalle) => {
+          if (detalle.n_socio !== null) {
+            mapa.set(detalle.n_socio, detalle);
+          }
+        });
+        setResumenPorSocio(mapa);
+      })
+      .catch((err) => {
+        console.error("Error al cargar resumen:", err);
+      });
   }, []);
 
   // Handlers
@@ -80,7 +104,41 @@ const SociosPage = () => {
   };
 
   const saveSocio = async () => {
-    if (crearUsuario) {
+    if (isEditing) {
+      // Modo edición: Solo actualizar el monto_semanal
+      if (!formData.monto_semanal || !formData.id) {
+        toast.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail: "Datos incompletos",
+          life: 3000,
+        });
+        return;
+      }
+      try {
+        await api.patch(`/partners/${formData.id}`, {
+          monto_semanal: formData.monto_semanal,
+        });
+        toast.current?.show({
+          severity: "success",
+          summary: "Éxito",
+          detail: "Socio actualizado",
+          life: 3000,
+        });
+        // Recargar socios
+        const sociosRes = await api.get("/partners");
+        setSocios(sociosRes.data);
+        hideDialog();
+      } catch (error) {
+        const err = error as AxiosError<{ message?: string }>;
+        toast.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail: err.response?.data?.message || "Error al actualizar socio",
+          life: 3000,
+        });
+      }
+    } else if (crearUsuario) {
       // Validar campos de usuario
       if (!userForm.email || !userForm.name || !userForm.lastName) {
         toast.current?.show({
@@ -165,55 +223,6 @@ const SociosPage = () => {
     }
   };
 
-  // Toolbar
-  const leftToolbarTemplate = () => {
-    return (
-      <div className="flex gap-2">
-        <Button
-          label="Nuevo Socio"
-          icon="pi pi-plus"
-          severity="success"
-          onClick={openNew}
-        />
-      </div>
-    );
-  };
-
-  const rightToolbarTemplate = () => {
-    return (
-      <Button
-        label="Exportar"
-        icon="pi pi-upload"
-        className="p-button-help"
-        onClick={() => dt.current?.exportCSV()}
-      />
-    );
-  };
-
-  // Header de la tabla con búsqueda
-  const header = (
-    <div className="flex flex-wrap gap-2 align-items-center justify-content-between">
-      <h2 className="text-xl font-bold m-0">Gestión de Socios</h2>
-      <span className="p-input-icon-left">
-        <i className="pi pi-search" />
-        <InputText
-          value={globalFilterValue}
-          onChange={(e) => {
-            const value = e.target.value;
-            const _filters = { ...filters };
-            if ("value" in _filters["global"]) {
-              (_filters["global"] as { value: string | null }).value = value;
-            }
-            setFilters(_filters);
-            setGlobalFilterValue(value);
-          }}
-          placeholder="Buscar..."
-          className="w-full sm:w-auto"
-        />
-      </span>
-    </div>
-  );
-
   return (
     <div className="p-4 lg:p-6">
       <Toast ref={toast} />
@@ -228,29 +237,77 @@ const SociosPage = () => {
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <Card className="shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <i className="pi pi-users text-2xl text-blue-600"></i>
+      <div className="flex flex-column lg:flex-row gap-3 mb-4">
+        <Card className="shadow-sm w-full">
+          <div
+            className="flex align-items-center gap-3"
+            style={{ padding: "0.5rem" }}
+          >
+            <div
+              style={{
+                backgroundColor: "#DBEAFE",
+                padding: "0.75rem",
+                borderRadius: "8px",
+              }}
+            >
+              <i
+                className="pi pi-users"
+                style={{ fontSize: "1.5rem", color: "#2563EB" }}
+              ></i>
             </div>
             <div>
-              <p className="text-gray-600 text-sm mb-1">Total Socios</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p
+                className="mb-1"
+                style={{ color: "#6B7280", fontSize: "0.875rem" }}
+              >
+                Total Socios
+              </p>
+              <p
+                className="m-0"
+                style={{
+                  fontSize: "1.5rem",
+                  fontWeight: "bold",
+                  color: "#111827",
+                }}
+              >
                 {socios.length}
               </p>
             </div>
           </div>
         </Card>
 
-        <Card className="shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <i className="pi pi-wallet text-2xl text-purple-600"></i>
+        <Card className="shadow-sm w-full">
+          <div
+            className="flex align-items-center gap-3"
+            style={{ padding: "0.5rem" }}
+          >
+            <div
+              style={{
+                backgroundColor: "#F3E8FF",
+                padding: "0.75rem",
+                borderRadius: "8px",
+              }}
+            >
+              <i
+                className="pi pi-wallet"
+                style={{ fontSize: "1.5rem", color: "#9333EA" }}
+              ></i>
             </div>
             <div>
-              <p className="text-gray-600 text-sm mb-1">Ahorro Semanal Total</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p
+                className="mb-1"
+                style={{ color: "#6B7280", fontSize: "0.875rem" }}
+              >
+                Ahorro Semanal Total
+              </p>
+              <p
+                className="m-0"
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: "bold",
+                  color: "#111827",
+                }}
+              >
                 {totalMontoSemanal(socios).toLocaleString("es-MX", {
                   style: "currency",
                   currency: "MXN",
@@ -261,54 +318,61 @@ const SociosPage = () => {
         </Card>
       </div>
 
-      {/* Tabla */}
-      <Card className="shadow-sm">
-        <Toolbar
-          className="mb-4"
-          left={leftToolbarTemplate}
-          right={rightToolbarTemplate}
-        />
-
-        <DataTable
-          ref={dt}
-          value={socios}
-          paginator
-          rows={10}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          dataKey="id"
+      {/* Tabla - Vista Desktop */}
+      <div className="hidden lg:block">
+        <SociosTable
+          socios={socios}
+          onEdit={(partner) => {
+            setIsEditing(true);
+            setFormData({
+              id: partner.id,
+              id_usuario: partner.id_usuario.id,
+              monto_semanal: partner.monto_semanal,
+            });
+            setUserForm({
+              email: partner.id_usuario.email,
+              name: partner.id_usuario.name,
+              lastName: partner.id_usuario.lastName,
+              phoneNumber: partner.id_usuario.phoneNumber,
+              password: "", // No se edita aquí
+            });
+            setDialogVisible(true);
+          }}
+          onNew={openNew}
           filters={filters}
-          globalFilterFields={["id_usuario"]}
-          header={header}
-          emptyMessage="No se encontraron socios."
-          className="text-sm"
-        >
-          <Column field="id" header="ID" sortable style={{ width: "10%" }} />
-          <Column
-            field="id_usuario"
-            header="Usuario"
-            body={(row) => {
-              const user = row.id_usuario;
-              if (user) {
-                return `${user.name} ${user.lastName} (${user.email})`;
-              }
-              return "";
-            }}
-            style={{ minWidth: "200px" }}
-          />
-          <Column
-            field="monto_semanal"
-            header="Monto Semanal"
-            body={(row) =>
-              row.monto_semanal.toLocaleString("es-MX", {
-                style: "currency",
-                currency: "MXN",
-              })
-            }
-            sortable
-            style={{ minWidth: "150px" }}
-          />
-        </DataTable>
-      </Card>
+          setFilters={setFilters}
+          globalFilterValue={globalFilterValue}
+          setGlobalFilterValue={setGlobalFilterValue}
+          resumenPorSocio={resumenPorSocio}
+          //@ts-expect-error posible null
+          dt={dt}
+        />
+      </div>
+
+      {/* Carousel - Vista Mobile/Tablet */}
+      <div className="lg:hidden">
+        <SociosCarousel
+          socios={socios}
+          onNew={openNew}
+          onEdit={(partner) => {
+            setIsEditing(true);
+            setFormData({
+              id: partner.id,
+              id_usuario: partner.id_usuario.id,
+              monto_semanal: partner.monto_semanal,
+            });
+            setUserForm({
+              email: partner.id_usuario.email,
+              name: partner.id_usuario.name,
+              lastName: partner.id_usuario.lastName,
+              phoneNumber: partner.id_usuario.phoneNumber,
+              password: "", // No se edita aquí
+            });
+            setDialogVisible(true);
+          }}
+          resumenPorSocio={resumenPorSocio}
+        />
+      </div>
 
       {/* Dialog para crear/editar */}
       <PartnerForm

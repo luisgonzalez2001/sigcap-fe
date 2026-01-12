@@ -36,7 +36,7 @@ const Header = () => {
               label: "Dashboard",
               icon: "pi pi-home",
               command: () => {
-                router.push("/");
+                router.push("/dashboard");
                 setSidebarVisible(false);
               },
             },
@@ -144,18 +144,24 @@ const Header = () => {
       {/* Header principal */}
       <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-100">
         <div className="px-4 sm:px-2 lg:px-4">
-          <div className="flex justify-content-between align-items-center">
-            {/* Logo y botón de menú */}
-            <div className="flex align-items-center gap-4">
-              {user && (
-                <Button
-                  icon="pi pi-bars"
-                  className="lg:hidden"
-                  onClick={() => setSidebarVisible(true)}
-                  text
-                  severity="secondary"
-                />
-              )}
+          <div
+            className="flex justify-content-between lg:justify-content-between align-items-center"
+            style={{ position: "relative" }}
+          >
+            {/* Botón de menú - Solo mobile */}
+            {user && (
+              <Button
+                icon="pi pi-bars"
+                className="lg:hidden"
+                onClick={() => setSidebarVisible(true)}
+                text
+                severity="secondary"
+                style={{ position: "absolute", left: 0 }}
+              />
+            )}
+
+            {/* Logo - Centrado en mobile, izquierda en desktop */}
+            <div className="flex align-items-center gap-4 w-full lg:w-auto justify-content-center lg:justify-content-start">
               <Link
                 href="/dashboard"
                 className="flex align-items-center"
@@ -169,20 +175,22 @@ const Header = () => {
             </div>
 
             {/* Sección derecha */}
-            <div className="flex align-items-center gap-2 sm:gap-4">
+            <div
+              className="flex align-items-center gap-2 sm:gap-4"
+              style={{ position: "absolute", right: 0 }}
+            >
               {user ? (
                 <>
-                  {/* Notificaciones */}
+                  {/* Notificaciones - Visible en todas las pantallas */}
                   <Button
                     icon="pi pi-bell"
                     rounded
                     text
                     severity="secondary"
                     badgeClassName="p-badge-danger"
-                    className="hidden sm:flex"
                     style={{
-                      width: "60px",
-                      height: "60px",
+                      width: "2.5rem",
+                      height: "2.5rem",
                     }}
                   />
 
@@ -206,7 +214,8 @@ const Header = () => {
                     <Avatar
                       label={getUserInitials()}
                       shape="circle"
-                      className="bg-blue-500 text-white cursor-pointer hover:bg-blue-600 transition-colors"
+                      className="text-white cursor-pointer hover:bg-blue-600 transition-colors"
+                      style={{ backgroundColor: "blue" }}
                     />
                   </Link>
                 </>
@@ -222,7 +231,7 @@ const Header = () => {
                       severity="secondary"
                     />
                   </Link>
-                  <Link href="/auth/login">
+                  <Link href="/auth/login" className="hidden sm:block">
                     <Button
                       label="Ingresar"
                       icon="pi pi-sign-in"

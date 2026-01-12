@@ -16,6 +16,9 @@ import { Message } from "primereact/message";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Dialog } from "primereact/dialog";
 
+// Estilos
+import "./Login.scss";
+
 export const Login = () => {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
@@ -99,7 +102,8 @@ export const Login = () => {
               feedback={false}
               toggleMask
               className="w-full"
-              style={{ width: "100%" }}
+              inputClassName="w-full"
+              inputStyle={{ width: "100%" }}
             />
             <label htmlFor="password">Contraseña</label>
           </span>

@@ -19,6 +19,7 @@ import "primeicons/primeicons.css";
 import esLocale from "@/data/es.json";
 import Header from "@/components/Header/Header";
 import SideBar from "@/components/SideBar/SideBar";
+import FloatingActionButton from "@/components/FloatingActionButton/FloatingActionButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -76,6 +77,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         <div className={user ? "col-12 lg:col-10" : "col-12"}>{children}</div>
       </div>
+
+      {/* Botón flotante para agregar abono semanal (solo admin) */}
+      <FloatingActionButton />
     </PrimeReactProvider>
   );
 }

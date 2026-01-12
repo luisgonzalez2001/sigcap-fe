@@ -1,17 +1,60 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import { Card } from "primereact/card";
 import { Chart } from "primereact/chart";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { Badge } from "primereact/badge";
+import api from "@/services/api";
+import type { ResumenGeneral } from "@/types/CajaSemanal";
+import type { Partner } from "@/types/Partner";
 
 interface DashboardProps {
   userRole?: "admin" | "socio";
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
-  // Datos simulados
+  // Estado para datos reales
+  const [resumenGeneral, setResumenGeneral] = useState<ResumenGeneral | null>(
+    null
+  );
+  const [totalSociosReal, setTotalSociosReal] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar datos reales del resumen y total de socios
+  useEffect(() => {
+    if (userRole === "admin") {
+      // Cargar resumen de caja semanal
+      const resumenPromise = api
+        .get("/caja-semanal/resumen")
+        .then((res) => {
+          setResumenGeneral(res.data);
+        })
+        .catch((err) => {
+          console.error("Error al cargar resumen:", err);
+        });
+
+      // Cargar total real de socios desde /partners
+      const partnersPromise = api
+        .get<Partner[]>("/partners")
+        .then((res) => {
+          setTotalSociosReal(res.data.length);
+        })
+        .catch((err) => {
+          console.error("Error al cargar socios:", err);
+        });
+
+      Promise.all([resumenPromise, partnersPromise]).finally(() => {
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [userRole]);
+
+  // Datos simulados (mock) para el resto
   const statsData = {
     totalSocios: 245,
     sociosActivos: 198,
@@ -153,7 +196,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
     }).format(value);
   };
 
-  const statusBodyTemplate = (rowData: any) => {
+  const statusBodyTemplate = (rowData: { status: string }) => {
     const severity =
       rowData.status === "completado"
         ? "success"
@@ -165,103 +208,212 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
     return <Badge value={rowData.status} severity={severity} />;
   };
 
-  const montoBodyTemplate = (rowData: any) => {
+  const montoBodyTemplate = (rowData: { monto: number }) => {
     return (
       <span className="font-semibold">{formatCurrency(rowData.monto)}</span>
     );
   };
 
   return (
-    <div className="flex-1 p-4 sm:p-3 lg:p-4 lg:pt-0">
+    <div className="p-4 lg:p-6">
       {userRole === "admin" ? (
         // Vista de Administrador
         <>
-          {/* Cards de estadísticas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">Total Socios</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {statsData.totalSocios}
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">
-                    <i className="pi pi-arrow-up text-xs"></i>{" "}
-                    {statsData.sociosActivos} activos
-                  </p>
+          {/* Cards de estadísticas - Responsive */}
+          <div className="flex flex-column lg:flex-row gap-3 mb-4">
+            {/* Total Socios - Datos reales */}
+            <Card className="shadow-sm w-full">
+              <div
+                className="flex align-items-center gap-3"
+                style={{ padding: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#DBEAFE",
+                    padding: "0.75rem",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <i
+                    className="pi pi-users"
+                    style={{ fontSize: "1.5rem", color: "#2563EB" }}
+                  ></i>
                 </div>
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <i className="pi pi-users text-2xl text-blue-600"></i>
+                <div>
+                  <p
+                    className="mb-1"
+                    style={{ color: "#6B7280", fontSize: "0.875rem" }}
+                  >
+                    Total Socios
+                  </p>
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: "1.5rem",
+                      fontWeight: "bold",
+                      color: "#111827",
+                    }}
+                  >
+                    {loading ? "..." : totalSociosReal}
+                  </p>
                 </div>
               </div>
             </Card>
 
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
+            {/* Total Ahorrado - Datos reales */}
+            <Card className="shadow-sm w-full">
+              <div
+                className="flex align-items-center gap-3"
+                style={{ padding: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#D1FAE5",
+                    padding: "0.75rem",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <i
+                    className="pi pi-wallet"
+                    style={{ fontSize: "1.5rem", color: "#059669" }}
+                  ></i>
+                </div>
                 <div>
-                  <p className="text-gray-600 text-sm mb-1">Total Ahorrado</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(statsData.totalAhorrado)}
+                  <p
+                    className="mb-1"
+                    style={{ color: "#6B7280", fontSize: "0.875rem" }}
+                  >
+                    Total Ahorrado
                   </p>
-                  <p className="text-sm text-green-600 mt-1">
-                    <i className="pi pi-arrow-up text-xs"></i> +8.5% este mes
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: "bold",
+                      color: "#111827",
+                    }}
+                  >
+                    {loading
+                      ? "..."
+                      : formatCurrency(
+                          resumenGeneral?.total_ahorrado_general || 0
+                        )}
                   </p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-lg">
-                  <i className="pi pi-wallet text-2xl text-green-600"></i>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">
-                    Préstamos Activos
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {statsData.prestamosActivos}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {formatCurrency(statsData.montoTotalPrestamos)}
-                  </p>
-                </div>
-                <div className="bg-purple-100 p-3 rounded-lg">
-                  <i className="pi pi-money-bill text-2xl text-purple-600"></i>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-600 text-sm mb-1">
-                    Tasa de Recuperación
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {statsData.tasaRecuperacion}%
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">
-                    <i className="pi pi-check text-xs"></i> Excelente
-                  </p>
-                </div>
-                <div className="bg-orange-100 p-3 rounded-lg">
-                  <i className="pi pi-chart-line text-2xl text-orange-600"></i>
                 </div>
               </div>
             </Card>
           </div>
 
-          {/* Gráficas */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Segunda fila de cards */}
+          <div className="flex flex-column lg:flex-row gap-3 mb-4">
+            {/* Préstamos Activos - Mock */}
+            <Card className="shadow-sm w-full">
+              <div
+                className="flex align-items-center gap-3"
+                style={{ padding: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#F3E8FF",
+                    padding: "0.75rem",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <i
+                    className="pi pi-money-bill"
+                    style={{ fontSize: "1.5rem", color: "#9333EA" }}
+                  ></i>
+                </div>
+                <div>
+                  <p
+                    className="mb-1"
+                    style={{ color: "#6B7280", fontSize: "0.875rem" }}
+                  >
+                    Préstamos Activos
+                  </p>
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: "1.5rem",
+                      fontWeight: "bold",
+                      color: "#111827",
+                    }}
+                  >
+                    {statsData.prestamosActivos}
+                  </p>
+                  <p
+                    className="m-0 mt-1"
+                    style={{ fontSize: "0.75rem", color: "#6B7280" }}
+                  >
+                    {formatCurrency(statsData.montoTotalPrestamos)}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Tasa de Recuperación - Mock */}
+            <Card className="shadow-sm w-full">
+              <div
+                className="flex align-items-center gap-3"
+                style={{ padding: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#FEF3C7",
+                    padding: "0.75rem",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <i
+                    className="pi pi-chart-line"
+                    style={{ fontSize: "1.5rem", color: "#D97706" }}
+                  ></i>
+                </div>
+                <div>
+                  <p
+                    className="mb-1"
+                    style={{ color: "#6B7280", fontSize: "0.875rem" }}
+                  >
+                    Tasa de Recuperación
+                  </p>
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: "1.5rem",
+                      fontWeight: "bold",
+                      color: "#111827",
+                    }}
+                  >
+                    {statsData.tasaRecuperacion}%
+                  </p>
+                  <p
+                    className="m-0 mt-1"
+                    style={{ fontSize: "0.75rem", color: "#059669" }}
+                  >
+                    <i
+                      className="pi pi-check"
+                      style={{ fontSize: "0.625rem" }}
+                    ></i>{" "}
+                    Excelente
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Gráficas - Responsive */}
+          <div className="flex flex-column lg:flex-row gap-3 mb-4">
             <Card
-              className="lg:col-span-2 shadow-sm"
+              className="shadow-sm w-full lg:w-8"
               title="Tendencia de Ahorros"
             >
               <Chart type="line" data={ahorrosMensuales} className="h-64" />
             </Card>
 
-            <Card className="shadow-sm" title="Préstamos por Nivel de Riesgo">
+            <Card
+              className="shadow-sm w-full lg:w-4"
+              title="Préstamos por Nivel de Riesgo"
+            >
               <Chart
                 type="doughnut"
                 data={prestamosPorRiesgo}
@@ -270,9 +422,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
             </Card>
           </div>
 
-          {/* Tablas */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <Card className="shadow-sm" title="Actividad Reciente">
+          {/* Tablas - Responsive */}
+          <div className="flex flex-column lg:flex-row gap-3 mb-4">
+            <Card className="shadow-sm w-full" title="Actividad Reciente">
               <DataTable
                 value={recentActivities}
                 paginator
@@ -295,7 +447,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
               </DataTable>
             </Card>
 
-            <Card className="shadow-sm" title="Próximos Pagos">
+            <Card className="shadow-sm w-full" title="Próximos Pagos">
               <DataTable
                 value={proximosPagos}
                 className="text-sm"
@@ -318,11 +470,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
           </div>
 
           {/* Acciones rápidas */}
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button
               label="Registrar Ahorro"
               icon="pi pi-plus"
-              className="bg-blue-600 border-blue-600"
+              style={{ backgroundColor: "#2563EB", border: "none" }}
             />
             <Button
               label="Nueva Solicitud de Préstamo"
