@@ -38,7 +38,10 @@ const SideBar: React.FC = () => {
     {
       label: "Ahorros",
       icon: "pi pi-wallet",
-      command: () => setSelectedView("ahorros"),
+      command: () => {
+        setSelectedView("ahorros");
+        router.push("/ahorros");
+      },
     },
     {
       label: "Préstamos",
