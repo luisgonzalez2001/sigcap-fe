@@ -40,32 +40,33 @@ const Header = () => {
                 setSidebarVisible(false);
               },
             },
-            {
-              label: "Socios",
-              icon: "pi pi-users",
-              command: () => {
-                router.push("/socios");
-                setSidebarVisible(false);
-              },
-            },
-            {
-              label: "Ahorros",
-              icon: "pi pi-wallet",
-              command: () => {
-                router.push("/ahorros");
-                setSidebarVisible(false);
-              },
-            },
-            {
-              label: "Préstamos",
-              icon: "pi pi-money-bill",
-              command: () => {
-                router.push("/prestamos");
-                setSidebarVisible(false);
-              },
-            },
+            // Solo admin puede ver estos links
             ...(user.rol === "admin"
               ? [
+                  {
+                    label: "Socios",
+                    icon: "pi pi-users",
+                    command: () => {
+                      router.push("/socios");
+                      setSidebarVisible(false);
+                    },
+                  },
+                  {
+                    label: "Ahorros",
+                    icon: "pi pi-wallet",
+                    command: () => {
+                      router.push("/ahorros");
+                      setSidebarVisible(false);
+                    },
+                  },
+                  {
+                    label: "Préstamos",
+                    icon: "pi pi-money-bill",
+                    command: () => {
+                      router.push("/prestamos");
+                      setSidebarVisible(false);
+                    },
+                  },
                   {
                     label: "Scoring",
                     icon: "pi pi-chart-line",

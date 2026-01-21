@@ -10,25 +10,41 @@ interface User {
   active: boolean;
 }
 
+// Nuevo: Datos extendidos para socios
+interface SocioExtra {
+  n_socio: number;
+  monto_semanal: number;
+}
+
 interface UserContextProps {
   user: User | null;
+  socioExtra: SocioExtra | null;
   setUserUser: (user: User | null) => void;
+  setSocioExtra: (extra: SocioExtra | null) => void;
 }
 
 const UserContext = createContext<UserContextProps | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [socioExtra, setSocioExtra] = useState<SocioExtra | null>(null);
 
   const setUserUser = setUser;
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user") || "null");
     if (storedUser) setUser(storedUser);
+    // Nuevo: cargar socioExtra
+    const storedSocioExtra = JSON.parse(
+      localStorage.getItem("socioExtra") || "null"
+    );
+    if (storedSocioExtra) setSocioExtra(storedSocioExtra);
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUserUser }}>
+    <UserContext.Provider
+      value={{ user, socioExtra, setUserUser, setSocioExtra }}
+    >
       {children}
     </UserContext.Provider>
   );

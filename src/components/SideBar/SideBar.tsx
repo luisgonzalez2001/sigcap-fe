@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Menu } from "primereact/menu";
 
 const SideBar: React.FC = () => {
-  const { setUserUser } = useUser();
+  const { user, setUserUser } = useUser();
   const [, setSelectedView] = useState("overview");
   const router = useRouter();
 
@@ -27,37 +27,42 @@ const SideBar: React.FC = () => {
         router.push("/dashboard");
       },
     },
-    {
-      label: "Socios",
-      icon: "pi pi-users",
-      command: () => {
-        setSelectedView("socios");
-        router.push("/socios");
-      },
-    },
-    {
-      label: "Ahorros",
-      icon: "pi pi-wallet",
-      command: () => {
-        setSelectedView("ahorros");
-        router.push("/ahorros");
-      },
-    },
-    {
-      label: "Préstamos",
-      icon: "pi pi-money-bill",
-      command: () => setSelectedView("prestamos"),
-    },
-    {
-      label: "Scoring",
-      icon: "pi pi-chart-line",
-      command: () => setSelectedView("scoring"),
-    },
-    {
-      label: "Reportes",
-      icon: "pi pi-file",
-      command: () => setSelectedView("reportes"),
-    },
+    // Solo admin puede ver estos links
+    ...(user?.rol === "admin"
+      ? [
+          {
+            label: "Socios",
+            icon: "pi pi-users",
+            command: () => {
+              setSelectedView("socios");
+              router.push("/socios");
+            },
+          },
+          {
+            label: "Ahorros",
+            icon: "pi pi-wallet",
+            command: () => {
+              setSelectedView("ahorros");
+              router.push("/ahorros");
+            },
+          },
+          {
+            label: "Préstamos",
+            icon: "pi pi-money-bill",
+            command: () => setSelectedView("prestamos"),
+          },
+          {
+            label: "Scoring",
+            icon: "pi pi-chart-line",
+            command: () => setSelectedView("scoring"),
+          },
+          {
+            label: "Reportes",
+            icon: "pi pi-file",
+            command: () => setSelectedView("reportes"),
+          },
+        ]
+      : []),
     {
       separator: true,
     },

@@ -24,7 +24,7 @@ export const Login = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const { setUserUser } = useUser();
+  const { setUserUser, setSocioExtra } = useUser();
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -39,7 +39,26 @@ export const Login = () => {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         setUserUser(data.user);
-        console.log("inicio correcto");
+
+        // Si el usuario es socio, obtener datos de partner
+        if (data.user.rol === "socio") {
+          const partnerRes = await api.get(`/partners/usuario/${data.user.id}`);
+          const partner = Array.isArray(partnerRes.data)
+            ? partnerRes.data[0]
+            : partnerRes.data;
+          console.log("Datos del partner:", partnerRes);
+          if (partner && partner.n_socio) {
+            const socioExtra = {
+              n_socio: partner.n_socio,
+              monto_semanal: partner.monto_semanal,
+            };
+            setSocioExtra(socioExtra);
+            localStorage.setItem("socioExtra", JSON.stringify(socioExtra));
+          }
+        } else {
+          setSocioExtra(null);
+          localStorage.removeItem("socioExtra");
+        }
         router.push("/dashboard");
       } catch (error) {
         const err = error as AxiosError<{ message?: string }>;

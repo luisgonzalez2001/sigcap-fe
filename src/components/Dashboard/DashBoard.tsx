@@ -8,23 +8,27 @@ import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { Badge } from "primereact/badge";
 import api from "@/services/api";
-import type { ResumenGeneral } from "@/types/CajaSemanal";
+import type { ResumenGeneral, ResumenSocio } from "@/types/CajaSemanal";
 import type { Partner } from "@/types/Partner";
+import { useUser } from "@/context/UserContext";
 
-interface DashboardProps {
-  userRole?: "admin" | "socio";
-}
+const Dashboard: React.FC = () => {
+  const { user, socioExtra } = useUser();
+  const userRole = user?.rol || "socio";
+  const nSocio = socioExtra?.n_socio;
 
-const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
   // Estado para datos reales
   const [resumenGeneral, setResumenGeneral] = useState<ResumenGeneral | null>(
     null
   );
   const [totalSociosReal, setTotalSociosReal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [resumenSocio, setResumenSocio] = useState<ResumenSocio | null>(null);
 
   // Cargar datos reales del resumen y total de socios
   useEffect(() => {
+    console.log("Cargando datos para rol:", userRole);
+    console.log("Número de socio:", nSocio);
     if (userRole === "admin") {
       // Cargar resumen de caja semanal
       const resumenPromise = api
@@ -49,10 +53,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
       Promise.all([resumenPromise, partnersPromise]).finally(() => {
         setLoading(false);
       });
+    } else if (userRole === "socio" && nSocio) {
+      api
+        .get(`/caja-semanal/resumen/${nSocio}`)
+        .then((res) => {
+          setResumenSocio(res.data);
+          console.log("Resumen socio cargado:", res.data);
+        })
+        .catch((err) => {
+          console.error("Error al cargar resumen socio:", err);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     } else {
       setLoading(false);
     }
-  }, [userRole]);
+  }, [userRole, nSocio]);
 
   // Datos simulados (mock) para el resto
   const statsData = {
@@ -495,61 +512,153 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
         <>
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Bienvenido, {socioData.nombre}
+              Bienvenido, {resumenSocio?.nombre_socio || socioData.nombre}
             </h2>
             <p className="text-gray-600">Aquí está el resumen de tu cuenta</p>
           </div>
 
-          {/* Cards de información del socio */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <Card className="shadow-sm">
-              <div className="text-center">
-                <i className="pi pi-wallet text-4xl text-blue-600 mb-3"></i>
-                <p className="text-gray-600 text-sm mb-1">
-                  Saldo Total Ahorrado
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(socioData.saldoTotal)}
-                </p>
-              </div>
-            </Card>
-
-            <Card className="shadow-sm">
-              <div className="text-center">
-                <i className="pi pi-calendar text-4xl text-green-600 mb-3"></i>
-                <p className="text-gray-600 text-sm mb-1">Progreso Anual</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {socioData.semanasCompletadas}/48
-                </p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
+          {/* Cards de información del socio - PrimeFlex y estilos admin */}
+          <div className="flex flex-column lg:flex-row gap-3 mb-6">
+            {/* Total Ahorrado - Datos reales */}
+            <Card className="shadow-sm w-full">
+              <div
+                className="flex align-items-center gap-3"
+                style={{ padding: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#D1FAE5",
+                    padding: "0.75rem",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <i
+                    className="pi pi-wallet"
+                    style={{ fontSize: "1.5rem", color: "#059669" }}
+                  ></i>
+                </div>
+                <div>
+                  <p
+                    className="mb-1"
+                    style={{ color: "#6B7280", fontSize: "0.875rem" }}
+                  >
+                    Total Ahorrado
+                  </p>
+                  <p
+                    className="m-0"
                     style={{
-                      width: `${(socioData.semanasCompletadas / 48) * 100}%`,
+                      fontSize: "1.25rem",
+                      fontWeight: "bold",
+                      color: "#111827",
                     }}
-                  ></div>
+                  >
+                    {loading
+                      ? "..."
+                      : formatCurrency(resumenSocio?.total_ahorrado || 0)}
+                  </p>
                 </div>
               </div>
             </Card>
 
-            <Card className="shadow-sm">
-              <div className="text-center">
-                <i className="pi pi-star text-4xl text-orange-600 mb-3"></i>
-                <p className="text-gray-600 text-sm mb-1">
-                  Tu Scoring Crediticio
-                </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {socioData.scoring}
-                </p>
-                <Badge
-                  value="Bajo Riesgo"
-                  severity="success"
-                  className="mt-2"
-                />
+            {/* Progreso Anual */}
+            <Card className="shadow-sm w-full">
+              <div
+                className="flex align-items-center gap-3"
+                style={{ padding: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#F3E8FF",
+                    padding: "0.75rem",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <i
+                    className="pi pi-calendar"
+                    style={{ fontSize: "1.5rem", color: "#9333EA" }}
+                  ></i>
+                </div>
+                <div style={{ width: "100%" }}>
+                  <p
+                    className="mb-1"
+                    style={{ color: "#6B7280", fontSize: "0.875rem" }}
+                  >
+                    Progreso Anual
+                  </p>
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: "bold",
+                      color: "#111827",
+                    }}
+                  >
+                    {loading
+                      ? "..."
+                      : resumenSocio
+                      ? `${resumenSocio.numero_abonos}/48`
+                      : `${socioData.semanasCompletadas}/48`}
+                  </p>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
+                      style={{
+                        width: resumenSocio
+                          ? `${(resumenSocio.numero_abonos / 48) * 100}%`
+                          : `${(socioData.semanasCompletadas / 48) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Scoring (mock) */}
+            <Card className="shadow-sm w-full">
+              <div
+                className="flex align-items-center gap-3"
+                style={{ padding: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#FEF3C7",
+                    padding: "0.75rem",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <i
+                    className="pi pi-star"
+                    style={{ fontSize: "1.5rem", color: "#F59E42" }}
+                  ></i>
+                </div>
+                <div>
+                  <p
+                    className="mb-1"
+                    style={{ color: "#6B7280", fontSize: "0.875rem" }}
+                  >
+                    Tu Scoring Crediticio
+                  </p>
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: "bold",
+                      color: "#111827",
+                    }}
+                  >
+                    {socioData.scoring}
+                  </p>
+                  <Badge
+                    value="Bajo Riesgo"
+                    severity="success"
+                    className="mt-2"
+                  />
+                </div>
               </div>
             </Card>
           </div>
 
+          {/* Card de préstamo activo (mock) */}
           {socioData.prestamoActivo && (
             <Card className="shadow-sm mb-6 bg-blue-50 border border-blue-200">
               <div className="flex items-start gap-4">
@@ -570,12 +679,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userRole = "admin" }) => {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <Card className="shadow-sm" title="Historial de Ahorros">
+          <div className="flex flex-column lg:flex-row gap-6 mb-6">
+            <Card
+              className="shadow-sm w-full lg:w-6"
+              title="Historial de Ahorros"
+            >
               <Chart type="bar" data={ahorrosMensuales} className="h-64" />
             </Card>
 
-            <Card className="shadow-sm" title="Mis Últimos Movimientos">
+            <Card
+              className="shadow-sm w-full lg:w-6"
+              title="Mis Últimos Movimientos"
+            >
               <DataTable
                 value={recentActivities.slice(0, 5)}
                 className="text-sm"
