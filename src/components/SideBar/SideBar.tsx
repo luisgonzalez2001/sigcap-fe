@@ -49,7 +49,10 @@ const SideBar: React.FC = () => {
           {
             label: "Préstamos",
             icon: "pi pi-money-bill",
-            command: () => setSelectedView("prestamos"),
+            command: () => {
+              setSelectedView("prestamos");
+              router.push("/prestamos");
+            },
           },
           {
             label: "Scoring",
@@ -62,7 +65,17 @@ const SideBar: React.FC = () => {
             command: () => setSelectedView("reportes"),
           },
         ]
-      : []),
+      : [
+          // Links para socios: solo préstamos (sus propios)
+          {
+            label: "Mis Préstamos",
+            icon: "pi pi-money-bill",
+            command: () => {
+              setSelectedView("prestamos");
+              router.push("/prestamos");
+            },
+          },
+        ]),
     {
       separator: true,
     },

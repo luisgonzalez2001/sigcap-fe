@@ -1,23 +1,18 @@
-import { cookieExist, cookieGet, cookieSet } from "@/app/utils/cookiesUtils";
-import { getRequestConfig } from "next-intl/server";
+// Archivo de configuración de internacionalización (i18n)
+// TODO: Implementar cuando se instale next-intl
 
-export default getRequestConfig(async () => {
-  // Provide a static locale, fetch a user setting,
-  // read from `cookies()`, `headers()`, etc.
-  let locale: any = "";
+export const getLocale = async () => {
+  // Por ahora retornamos español como idioma predeterminado
+  return "es";
+};
 
-  const hasCookie = await cookieExist("locale");
-
-  if (hasCookie) {
-    locale = await cookieGet("locale").then((x) => {
-      return x?.value;
-    });
-  } else {
-    locale = "en"; // o cualquier idioma predeterminado
+export const getMessages = async () => {
+  const locale = await getLocale();
+  try {
+    return (await import(`../../messages/${locale}.json`)).default;
+  } catch {
+    // Si no existe el archivo de mensajes, retornamos un objeto vacío
+    return {};
   }
+};
 
-  return {
-    locale,
-    messages: (await import(`../../messages/${locale}.json`)).default,
-  };
-});

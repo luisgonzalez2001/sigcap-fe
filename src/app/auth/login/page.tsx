@@ -19,7 +19,7 @@ import { Dialog } from "primereact/dialog";
 // Estilos
 import "./Login.scss";
 
-export const Login = () => {
+const Login = () => {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,6 +49,7 @@ export const Login = () => {
           console.log("Datos del partner:", partnerRes);
           if (partner && partner.n_socio) {
             const socioExtra = {
+              id: partner.id,
               n_socio: partner.n_socio,
               monto_semanal: partner.monto_semanal,
             };
@@ -75,7 +76,7 @@ export const Login = () => {
               break;
             default:
               setErrorMessage(
-                err.response.data?.message || "Ha ocurrido un error."
+                err.response.data?.message || "Ha ocurrido un error.",
               );
           }
         } else {

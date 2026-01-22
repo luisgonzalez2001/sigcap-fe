@@ -10,8 +10,8 @@ interface User {
   active: boolean;
 }
 
-// Nuevo: Datos extendidos para socios
 interface SocioExtra {
+  id: string;
   n_socio: number;
   monto_semanal: number;
 }
@@ -36,7 +36,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     if (storedUser) setUser(storedUser);
     // Nuevo: cargar socioExtra
     const storedSocioExtra = JSON.parse(
-      localStorage.getItem("socioExtra") || "null"
+      localStorage.getItem("socioExtra") || "null",
     );
     if (storedSocioExtra) setSocioExtra(storedSocioExtra);
   }, []);

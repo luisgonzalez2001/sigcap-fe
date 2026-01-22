@@ -11,7 +11,7 @@ import { Image } from "primereact/image";
 
 import "./home.scss";
 
-export const Home = () => {
+const Home = () => {
   const { user } = useUser();
 
   return (

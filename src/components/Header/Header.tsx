@@ -26,75 +26,72 @@ const Header = () => {
     router.push("/auth/login");
   };
 
-  // Items del menú para el sidebar
+  // Items del menú para el sidebar - misma estructura que SideBar
   const menuItems: MenuItem[] = user
     ? [
         {
-          label: "Navegación",
-          items: [
-            {
-              label: "Dashboard",
-              icon: "pi pi-home",
-              command: () => {
-                router.push("/dashboard");
-                setSidebarVisible(false);
-              },
-            },
-            // Solo admin puede ver estos links
-            ...(user.rol === "admin"
-              ? [
-                  {
-                    label: "Socios",
-                    icon: "pi pi-users",
-                    command: () => {
-                      router.push("/socios");
-                      setSidebarVisible(false);
-                    },
-                  },
-                  {
-                    label: "Ahorros",
-                    icon: "pi pi-wallet",
-                    command: () => {
-                      router.push("/ahorros");
-                      setSidebarVisible(false);
-                    },
-                  },
-                  {
-                    label: "Préstamos",
-                    icon: "pi pi-money-bill",
-                    command: () => {
-                      router.push("/prestamos");
-                      setSidebarVisible(false);
-                    },
-                  },
-                  {
-                    label: "Scoring",
-                    icon: "pi pi-chart-line",
-                    command: () => {
-                      router.push("/scoring");
-                      setSidebarVisible(false);
-                    },
-                  },
-                  {
-                    label: "Reportes",
-                    icon: "pi pi-file",
-                    command: () => {
-                      router.push("/reportes");
-                      setSidebarVisible(false);
-                    },
-                  },
-                  {
-                    label: "Administración",
-                    icon: "pi pi-shield",
-                    command: () => {
-                      router.push("/users");
-                      setSidebarVisible(false);
-                    },
-                  },
-                ]
-              : []),
-          ],
+          label: "Dashboard",
+          icon: "pi pi-home",
+          command: () => {
+            router.push("/dashboard");
+            setSidebarVisible(false);
+          },
         },
+        // Solo admin puede ver estos links
+        ...(user.rol === "admin"
+          ? [
+              {
+                label: "Socios",
+                icon: "pi pi-users",
+                command: () => {
+                  router.push("/socios");
+                  setSidebarVisible(false);
+                },
+              },
+              {
+                label: "Ahorros",
+                icon: "pi pi-wallet",
+                command: () => {
+                  router.push("/ahorros");
+                  setSidebarVisible(false);
+                },
+              },
+              {
+                label: "Préstamos",
+                icon: "pi pi-money-bill",
+                command: () => {
+                  router.push("/prestamos");
+                  setSidebarVisible(false);
+                },
+              },
+              {
+                label: "Scoring",
+                icon: "pi pi-chart-line",
+                command: () => {
+                  router.push("/scoring");
+                  setSidebarVisible(false);
+                },
+              },
+              {
+                label: "Reportes",
+                icon: "pi pi-file",
+                command: () => {
+                  router.push("/reportes");
+                  setSidebarVisible(false);
+                },
+              },
+            ]
+          : [
+              // Links para socios: solo préstamos (sus propios)
+              {
+                label: "Mis Préstamos",
+                icon: "pi pi-money-bill",
+                command: () => {
+                  router.push("/prestamos");
+                  setSidebarVisible(false);
+                },
+              },
+            ]),
         {
           separator: true,
         },
@@ -116,9 +113,6 @@ const Header = () => {
                 router.push("/settings");
                 setSidebarVisible(false);
               },
-            },
-            {
-              separator: true,
             },
             {
               label: "Cerrar Sesión",

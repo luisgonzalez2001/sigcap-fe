@@ -17,11 +17,8 @@ import { ProgressSpinner } from "primereact/progressspinner";
 //types
 import { CreateUserDto } from "@/types/UserDto";
 
-interface UserFormProps {
-  isSignUp: boolean;
-}
-
-export const SignUP = ({ isSignUp = true }: UserFormProps) => {
+const SignUP = () => {
+  const isSignUp = true;
   const [name, setName] = useState("");
   const [lastName, setlastName] = useState("");
   const [email, setEmail] = useState("");
@@ -68,7 +65,7 @@ export const SignUP = ({ isSignUp = true }: UserFormProps) => {
         const err = error as AxiosError<{ message?: string }>;
         if (err.response && err.response.status === 409) {
           setError(
-            "Este correo electrónico ya está registrado. Por favor, utiliza otro."
+            "Este correo electrónico ya está registrado. Por favor, utiliza otro.",
           );
         } else {
           setError(err.response?.data?.message || "Error al crear el usuario.");

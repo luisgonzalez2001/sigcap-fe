@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/services/api";
 
@@ -9,7 +9,7 @@ import { ProgressSpinner } from "primereact/progressspinner";
 import { Card } from "primereact/card";
 import { CSSTransition } from "react-transition-group";
 
-export const EmailVerified = () => {
+const EmailVerifiedContent = () => {
   const [success, setSuccess] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -67,6 +67,20 @@ export const EmailVerified = () => {
         </div>
       </CSSTransition>
     </div>
+  );
+};
+
+const EmailVerified = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex align-items-center justify-content-center min-h-screen">
+          <ProgressSpinner />
+        </div>
+      }
+    >
+      <EmailVerifiedContent />
+    </Suspense>
   );
 };
 
