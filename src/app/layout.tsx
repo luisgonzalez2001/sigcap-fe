@@ -1,6 +1,9 @@
 "use client";
 
-import { UserProvider, useUser } from "@/context/UserContext";
+import { UserProvider } from "@/context/UserContext";
+import { useAuth } from "@/context/AuthContext";
+import { ProtectedRoute } from "@/components/Auth/ProtectedRoute";
+import { InactivityWarningDialog } from "@/components/Auth/InactivityWarningDialog";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.scss";
 import { useEffect } from "react";
@@ -37,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <UserProvider>
           <LayoutContent>{children}</LayoutContent>
@@ -50,7 +53,7 @@ export default function RootLayout({
 /* ---------------------------------------- */
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
+  const { user, isAuthenticated, showInactivityWarning } = useAuth();
 
   useEffect(() => {
     addLocale("es", esLocale.es);
@@ -66,20 +69,29 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <PrimeReactProvider value={primeConfig}>
-      <Header />
+      <ProtectedRoute>
+        <Header />
 
-      <div className="grid">
-        {user && (
-          <div className="hidden lg:block lg:col-2">
-            <SideBar />
+        <div className="grid">
+          {isAuthenticated && user && (
+            <div className="hidden lg:block lg:col-2">
+              <SideBar />
+            </div>
+          )}
+
+          <div
+            className={isAuthenticated && user ? "col-12 lg:col-10" : "col-12"}
+          >
+            {children}
           </div>
-        )}
+        </div>
 
-        <div className={user ? "col-12 lg:col-10" : "col-12"}>{children}</div>
-      </div>
+        {/* Botón flotante para agregar abono semanal (solo admin) */}
+        <FloatingActionButton />
 
-      {/* Botón flotante para agregar abono semanal (solo admin) */}
-      <FloatingActionButton />
+        {/* Diálogo de advertencia de inactividad */}
+        <InactivityWarningDialog visible={showInactivityWarning} />
+      </ProtectedRoute>
     </PrimeReactProvider>
   );
 }

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useUser } from "../../../context/UserContext";
+import { useState, useEffect, Suspense } from "react";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/services/api";
 import type { AxiosError } from "axios";
+import type { LoginResponse } from "@/types/Auth";
+import { getErrorMessage, getErrorAction } from "@/types/Auth";
 
 // PrimeReact
 import { Card } from "primereact/card";
@@ -22,14 +24,48 @@ import "./Login.scss";
 
 type LoginMethod = "email" | "phone";
 
-const Login = () => {
+// Mensajes según la razón de redirección
+const REDIRECT_REASONS: Record<
+  string,
+  { severity: "info" | "warn"; message: string }
+> = {
+  inactivity: {
+    severity: "warn",
+    message:
+      "Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.",
+  },
+  session_expired: {
+    severity: "warn",
+    message: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+  },
+  unauthorized: {
+    severity: "info",
+    message: "Necesitas iniciar sesión para acceder a esa página.",
+  },
+};
+
+// Componente interno que usa useSearchParams
+function LoginForm() {
   const [password, setPassword] = useState("");
-  const [identifier, setIdentifier] = useState(""); // email o teléfono
+  const [identifier, setIdentifier] = useState("");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("email");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const { setUserUser, setSocioExtra } = useUser();
+  const [infoMessage, setInfoMessage] = useState<{
+    severity: "info" | "warn";
+    message: string;
+  } | null>(null);
+  const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Mostrar mensaje según la razón de redirección
+  useEffect(() => {
+    const reason = searchParams.get("reason");
+    if (reason && REDIRECT_REASONS[reason]) {
+      setInfoMessage(REDIRECT_REASONS[reason]);
+    }
+  }, [searchParams]);
 
   const loginMethodOptions = [
     { label: "Correo", value: "email", icon: "pi pi-envelope" },
@@ -40,6 +76,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage("");
+    setInfoMessage(null);
 
     // Validar campo
     if (!identifier.trim()) {
@@ -58,66 +95,75 @@ const Login = () => {
       return;
     }
 
-    setTimeout(async () => {
-      try {
-        // Construir body según método de login
-        const loginBody =
-          loginMethod === "email"
-            ? { email: identifier, password }
-            : { phoneNumber: identifier, password };
+    try {
+      // Construir body según método de login
+      const loginBody =
+        loginMethod === "email"
+          ? { email: identifier, password }
+          : { phoneNumber: identifier, password };
 
-        const { data } = await api.post("/auth/login", loginBody);
+      const { data } = await api.post<LoginResponse>("/auth/login", loginBody);
 
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setUserUser(data.user);
+      // Usar el nuevo método de login del AuthContext
+      await login(data);
 
-        // Si el usuario es socio, obtener datos de partner
-        if (data.user.rol === "socio") {
-          const partnerRes = await api.get(`/partners/usuario/${data.user.id}`);
-          const partner = Array.isArray(partnerRes.data)
-            ? partnerRes.data[0]
-            : partnerRes.data;
-          console.log("Datos del partner:", partnerRes);
-          if (partner && partner.n_socio) {
-            const socioExtra = {
-              id: partner.id,
-              n_socio: partner.n_socio,
-              monto_semanal: partner.monto_semanal,
-            };
-            setSocioExtra(socioExtra);
-            localStorage.setItem("socioExtra", JSON.stringify(socioExtra));
-          }
+      // Redirigir a la página original o dashboard según rol
+      const redirectUrl = searchParams.get("redirect");
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else {
+        // Redirigir según rol
+        if (data.user.rol === "admin") {
+          router.push("/dashboard");
         } else {
-          setSocioExtra(null);
-          localStorage.removeItem("socioExtra");
+          router.push("/prestamos");
         }
-        router.push("/dashboard");
-      } catch (error) {
-        const err = error as AxiosError<{ message?: string }>;
-        if (err.response) {
-          switch (err.response.status) {
-            case 401:
-              setErrorMessage("Correo electrónico no verificado.");
-              break;
-            case 404:
-              setErrorMessage("Usuario no encontrado.");
-              break;
-            case 403:
-              setErrorMessage("Contraseña incorrecta.");
-              break;
-            default:
-              setErrorMessage(
-                err.response.data?.message || "Ha ocurrido un error.",
-              );
-          }
-        } else {
-          setErrorMessage(err.message || "Ha ocurrido un error.");
-        }
-      } finally {
-        setLoading(false);
       }
-    }, 1000);
+    } catch (error) {
+      const err = error as AxiosError<{ message?: string }>;
+      const errorCode = err.response?.data?.message || "";
+      const action = getErrorAction(errorCode);
+
+      if (action === "redirect-verify") {
+        router.push("/auth/verify");
+        return;
+      }
+
+      // Mapear errores específicos
+      if (err.response) {
+        switch (err.response.status) {
+          case 401:
+            if (errorCode === "EMAIL_NOT_VERIFIED") {
+              setErrorMessage(
+                "Tu email no ha sido verificado. Revisa tu bandeja de entrada.",
+              );
+            } else {
+              setErrorMessage(getErrorMessage(errorCode));
+            }
+            break;
+          case 403:
+            if (errorCode === "USER_INACTIVE") {
+              setErrorMessage(
+                "Tu cuenta ha sido desactivada. Contacta al administrador.",
+              );
+            } else if (errorCode === "INVALID_PASSWORD") {
+              setErrorMessage("Contraseña incorrecta.");
+            } else {
+              setErrorMessage(getErrorMessage(errorCode));
+            }
+            break;
+          case 404:
+            setErrorMessage("Usuario no encontrado.");
+            break;
+          default:
+            setErrorMessage(getErrorMessage(errorCode));
+        }
+      } else {
+        setErrorMessage(err.message || "Ha ocurrido un error de conexión.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -125,6 +171,18 @@ const Login = () => {
       <Card className="w-25rem shadow-3">
         <h2 className="text-center mb-4">Iniciar Sesión</h2>
 
+        {/* Mensaje informativo (razón de redirección) */}
+        {infoMessage && (
+          <Message
+            severity={infoMessage.severity}
+            text={infoMessage.message}
+            className="mb-3 w-full"
+            style={{ cursor: "pointer" }}
+            onClick={() => setInfoMessage(null)}
+          />
+        )}
+
+        {/* Mensaje de error */}
         {errorMessage && (
           <Message
             severity="error"
@@ -141,8 +199,10 @@ const Login = () => {
             <SelectButton
               value={loginMethod}
               onChange={(e) => {
-                setLoginMethod(e.value);
-                setIdentifier(""); // Limpiar al cambiar método
+                if (e.value) {
+                  setLoginMethod(e.value);
+                  setIdentifier("");
+                }
               }}
               options={loginMethodOptions}
               optionLabel="label"
@@ -226,6 +286,30 @@ const Login = () => {
         <ProgressSpinner />
       </Dialog>
     </div>
+  );
+}
+
+// Componente de loading para el Suspense
+function LoginLoading() {
+  return (
+    <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100">
+      <div className="text-center">
+        <ProgressSpinner
+          style={{ width: "50px", height: "50px" }}
+          strokeWidth="4"
+        />
+        <p className="mt-3 text-gray-600">Cargando...</p>
+      </div>
+    </div>
+  );
+}
+
+// Componente principal con Suspense wrapper
+const Login = () => {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginForm />
+    </Suspense>
   );
 };
 

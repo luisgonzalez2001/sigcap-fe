@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/context/UserContext";
+import { useAuth } from "@/context/AuthContext";
 
 // PrimeReact
 import { Button } from "primereact/button";
@@ -15,18 +15,9 @@ import type { MenuItem } from "primereact/menuitem";
 import "./Header.scss";
 
 const Header = () => {
-  const { user, setUserUser, setSocioExtra } = useUser();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [sidebarVisible, setSidebarVisible] = useState(false);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("socioExtra");
-    setUserUser(null);
-    setSocioExtra(null);
-    router.push("/auth/login");
-  };
 
   // Items del menú para el sidebar - misma estructura que SideBar
   const menuItems: MenuItem[] = user
@@ -119,7 +110,10 @@ const Header = () => {
             {
               label: "Cerrar Sesión",
               icon: "pi pi-sign-out",
-              command: handleLogout,
+              command: () => {
+                logout();
+                setSidebarVisible(false);
+              },
             },
           ],
         },

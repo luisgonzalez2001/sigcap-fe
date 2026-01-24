@@ -1,24 +1,15 @@
 "use client";
 
-import { useUser } from "@/context/UserContext";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Menu } from "primereact/menu";
 
 const SideBar: React.FC = () => {
-  const { user, setUserUser, setSocioExtra } = useUser();
+  const { user, logout } = useAuth();
   const [, setSelectedView] = useState("overview");
   const router = useRouter();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("socioExtra");
-    setUserUser(null);
-    setSocioExtra(null);
-    router.push("/auth/login");
-  };
 
   const menuItems = [
     {
@@ -102,7 +93,7 @@ const SideBar: React.FC = () => {
         {
           label: "Cerrar Sesión",
           icon: "pi pi-sign-out",
-          command: handleLogout,
+          command: logout,
         },
       ],
     },
