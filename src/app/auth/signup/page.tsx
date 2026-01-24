@@ -17,6 +17,9 @@ import { ProgressSpinner } from "primereact/progressspinner";
 //types
 import { CreateUserDto } from "@/types/UserDto";
 
+// Estilos
+import "./Signup.scss";
+
 const SignUP = () => {
   const isSignUp = true;
   const [name, setName] = useState("");
@@ -150,7 +153,7 @@ const SignUP = () => {
 
           {isSignUp && (
             <>
-              <span className="p-float-label w-full">
+              <span className="p-float-label">
                 <Password
                   id="password"
                   value={password}
@@ -158,12 +161,14 @@ const SignUP = () => {
                   feedback={false}
                   toggleMask
                   className="w-full"
+                  inputClassName="w-full"
+                  inputStyle={{ width: "100%" }}
                   required
                 />
                 <label htmlFor="password">Contraseña</label>
               </span>
 
-              <span className="p-float-label w-full">
+              <span className="p-float-label">
                 <Password
                   id="repeatPassword"
                   value={repeatPassword}
@@ -171,6 +176,8 @@ const SignUP = () => {
                   feedback={false}
                   toggleMask
                   className="w-full"
+                  inputClassName="w-full"
+                  inputStyle={{ width: "100%" }}
                   required
                 />
                 <label htmlFor="repeatPassword">Repetir Contraseña</label>

@@ -15,14 +15,16 @@ import type { MenuItem } from "primereact/menuitem";
 import "./Header.scss";
 
 const Header = () => {
-  const { user, setUserUser } = useUser();
+  const { user, setUserUser, setSocioExtra } = useUser();
   const router = useRouter();
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("socioExtra");
     setUserUser(null);
+    setSocioExtra(null);
     router.push("/auth/login");
   };
 
@@ -45,6 +47,14 @@ const Header = () => {
                 icon: "pi pi-users",
                 command: () => {
                   router.push("/socios");
+                  setSidebarVisible(false);
+                },
+              },
+              {
+                label: "Usuarios",
+                icon: "pi pi-user-edit",
+                command: () => {
+                  router.push("/usuarios");
                   setSidebarVisible(false);
                 },
               },
@@ -107,14 +117,6 @@ const Header = () => {
               },
             },
             {
-              label: "Configuración",
-              icon: "pi pi-cog",
-              command: () => {
-                router.push("/settings");
-                setSidebarVisible(false);
-              },
-            },
-            {
               label: "Cerrar Sesión",
               icon: "pi pi-sign-out",
               command: handleLogout,
@@ -127,11 +129,9 @@ const Header = () => {
   // Obtener iniciales del usuario para el avatar
   const getUserInitials = () => {
     if (!user?.name) return "U";
-    const names = user.name.split(" ");
-    if (names.length >= 2) {
-      return `${names[0][0]}${names[1][0]}`.toUpperCase();
-    }
-    return names[0][0].toUpperCase();
+    const firstName = user.name.charAt(0);
+    const lastName = user.lastName?.charAt(0) || "";
+    return `${firstName}${lastName}`.toUpperCase();
   };
 
   return (

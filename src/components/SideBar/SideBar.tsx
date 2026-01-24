@@ -7,14 +7,16 @@ import { useState } from "react";
 import { Menu } from "primereact/menu";
 
 const SideBar: React.FC = () => {
-  const { user, setUserUser } = useUser();
+  const { user, setUserUser, setSocioExtra } = useUser();
   const [, setSelectedView] = useState("overview");
   const router = useRouter();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("socioExtra");
     setUserUser(null);
+    setSocioExtra(null);
     router.push("/auth/login");
   };
 
@@ -36,6 +38,14 @@ const SideBar: React.FC = () => {
             command: () => {
               setSelectedView("socios");
               router.push("/socios");
+            },
+          },
+          {
+            label: "Usuarios",
+            icon: "pi pi-user-edit",
+            command: () => {
+              setSelectedView("usuarios");
+              router.push("/usuarios");
             },
           },
           {
@@ -87,13 +97,6 @@ const SideBar: React.FC = () => {
           icon: "pi pi-user",
           command: () => {
             router.push("/profile");
-          },
-        },
-        {
-          label: "Configuración",
-          icon: "pi pi-cog",
-          command: () => {
-            router.push("/settings");
           },
         },
         {

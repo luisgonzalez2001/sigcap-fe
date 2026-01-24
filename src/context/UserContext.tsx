@@ -5,9 +5,11 @@ interface User {
   name: string;
   lastName: string;
   email: string;
+  phoneNumber?: string;
   password: string;
   rol: "admin" | "socio";
-  active: boolean;
+  active?: boolean;
+  verified?: boolean;
 }
 
 interface SocioExtra {

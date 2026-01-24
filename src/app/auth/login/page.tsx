@@ -15,26 +15,58 @@ import { Button } from "primereact/button";
 import { Message } from "primereact/message";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Dialog } from "primereact/dialog";
+import { SelectButton } from "primereact/selectbutton";
 
 // Estilos
 import "./Login.scss";
 
+type LoginMethod = "email" | "phone";
+
 const Login = () => {
   const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // email o teléfono
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("email");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const { setUserUser, setSocioExtra } = useUser();
   const router = useRouter();
+
+  const loginMethodOptions = [
+    { label: "Correo", value: "email", icon: "pi pi-envelope" },
+    { label: "Teléfono", value: "phone", icon: "pi pi-phone" },
+  ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage("");
 
+    // Validar campo
+    if (!identifier.trim()) {
+      setErrorMessage(
+        loginMethod === "email"
+          ? "Ingresa tu correo electrónico"
+          : "Ingresa tu número de teléfono",
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (!password.trim()) {
+      setErrorMessage("Ingresa tu contraseña");
+      setLoading(false);
+      return;
+    }
+
     setTimeout(async () => {
       try {
-        const { data } = await api.post("/auth/login", { email, password });
+        // Construir body según método de login
+        const loginBody =
+          loginMethod === "email"
+            ? { email: identifier, password }
+            : { phoneNumber: identifier, password };
+
+        const { data } = await api.post("/auth/login", loginBody);
 
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -91,27 +123,55 @@ const Login = () => {
   return (
     <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100">
       <Card className="w-25rem shadow-3">
-        <h2 className="text-center mb-4">Login</h2>
+        <h2 className="text-center mb-4">Iniciar Sesión</h2>
 
         {errorMessage && (
           <Message
             severity="error"
             text={errorMessage}
-            className="mb-3"
+            className="mb-3 w-full"
+            style={{ cursor: "pointer" }}
             onClick={() => setErrorMessage("")}
           />
         )}
 
         <form onSubmit={handleLogin} className="flex flex-column gap-3">
+          {/* Selector de método de login */}
+          <div className="flex text-center mb-2">
+            <SelectButton
+              value={loginMethod}
+              onChange={(e) => {
+                setLoginMethod(e.value);
+                setIdentifier(""); // Limpiar al cambiar método
+              }}
+              options={loginMethodOptions}
+              optionLabel="label"
+              optionValue="value"
+              className="w-full"
+              itemTemplate={(option) => (
+                <div className="flex align-items-center gap-2 px-2">
+                  <i className={option.icon}></i>
+                  <span>{option.label}</span>
+                </div>
+              )}
+            />
+          </div>
+
+          {/* Campo de email o teléfono */}
           <span className="p-float-label">
             <InputText
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="identifier"
+              type={loginMethod === "email" ? "email" : "tel"}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               className="w-full"
+              keyfilter={loginMethod === "phone" ? /[\d+\-\s()]/ : undefined}
             />
-            <label htmlFor="email">Correo</label>
+            <label htmlFor="identifier">
+              {loginMethod === "email"
+                ? "Correo electrónico"
+                : "Número de teléfono"}
+            </label>
           </span>
 
           <span className="p-float-label">
@@ -133,6 +193,7 @@ const Login = () => {
             label="Ingresar"
             icon="pi pi-sign-in"
             className="w-full"
+            loading={loading}
           />
         </form>
 
