@@ -255,8 +255,8 @@ const PartnerForm = ({
                 usuarios.length === 0
                   ? "No hay usuarios disponibles"
                   : filteredUsuarios.length === 0
-                  ? "No se encontraron usuarios"
-                  : "Selecciona un usuario"
+                    ? "No se encontraron usuarios"
+                    : "Selecciona un usuario"
               }
               className="w-full"
               disabled={usuarios.length === 0}
@@ -266,7 +266,7 @@ const PartnerForm = ({
           </div>
 
           {selectedUser && (
-            <div className="grid gap-2 mb-3">
+            <div className="grid gap-2 mb-3 pl-2 pr-2">
               <InputText
                 placeholder="Nombre(s)"
                 value={selectedUser.name}

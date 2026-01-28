@@ -46,6 +46,7 @@ const REDIRECT_REASONS: Record<
 
 // Componente interno que usa useSearchParams
 function LoginForm() {
+  const [mounted, setMounted] = useState(false);
   const [password, setPassword] = useState("");
   const [identifier, setIdentifier] = useState("");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("email");
@@ -58,6 +59,11 @@ function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Esperar a que el componente se monte en el cliente para evitar errores de hidratación
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Mostrar mensaje según la razón de redirección
   useEffect(() => {
@@ -112,12 +118,8 @@ function LoginForm() {
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {
-        // Redirigir según rol
-        if (data.user.rol === "admin") {
-          router.push("/dashboard");
-        } else {
-          router.push("/prestamos");
-        }
+        // Siempre redirigir a dashboard
+        router.push("/dashboard");
       }
     } catch (error) {
       const err = error as AxiosError<{ message?: string }>;
@@ -142,7 +144,11 @@ function LoginForm() {
             }
             break;
           case 403:
-            if (errorCode === "USER_INACTIVE") {
+            if (errorCode === "EMAIL_NOT_VERIFIED") {
+              setErrorMessage(
+                "Tu email no ha sido verificado. Revisa tu bandeja de entrada para verificar tu cuenta.",
+              );
+            } else if (errorCode === "USER_INACTIVE") {
               setErrorMessage(
                 "Tu cuenta ha sido desactivada. Contacta al administrador.",
               );
@@ -166,8 +172,20 @@ function LoginForm() {
     }
   };
 
+  // Mostrar loading mientras se monta el componente para evitar errores de hidratación
+  if (!mounted) {
+    return (
+      <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100">
+        <ProgressSpinner
+          style={{ width: "50px", height: "50px" }}
+          strokeWidth="4"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100">
+    <div className="flex justify-content-center align-items-center mt-8 bg-gray-100">
       <Card className="w-25rem shadow-3">
         <h2 className="text-center mb-4">Iniciar Sesión</h2>
 

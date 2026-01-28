@@ -12,6 +12,9 @@ import { Sidebar } from "primereact/sidebar";
 import { Menu } from "primereact/menu";
 import type { MenuItem } from "primereact/menuitem";
 
+// Components
+import { NotificationsBell } from "@/components/Notifications/NotificationsBell";
+
 import "./Header.scss";
 
 const Header = () => {
@@ -131,10 +134,10 @@ const Header = () => {
   return (
     <>
       {/* Header principal */}
-      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-100">
-        <div className="px-4 sm:px-2 lg:px-4">
+      <header className="app-header bg-white shadow-1">
+        <div className="px-3 sm:px-2 lg:px-4">
           <div
-            className="flex justify-content-between lg:justify-content-between align-items-center"
+            className="flex justify-content-between lg:justify-content-between align-items-center py-2"
             style={{ position: "relative" }}
           >
             {/* Botón de menú - Solo mobile */}
@@ -171,17 +174,7 @@ const Header = () => {
               {user ? (
                 <>
                   {/* Notificaciones - Visible en todas las pantallas */}
-                  <Button
-                    icon="pi pi-bell"
-                    rounded
-                    text
-                    severity="secondary"
-                    badgeClassName="p-badge-danger"
-                    style={{
-                      width: "2.5rem",
-                      height: "2.5rem",
-                    }}
-                  />
+                  <NotificationsBell />
 
                   {/* Avatar con nombre (solo en desktop) */}
                   <div className="hidden lg:flex align-items-center gap-2">
@@ -234,7 +227,10 @@ const Header = () => {
             </div>
           </div>
         </div>
-      </div>
+      </header>
+
+      {/* Espaciador para compensar el header fijo */}
+      <div className="header-spacer"></div>
 
       {/* Sidebar para móvil - solo se muestra si hay usuario */}
       {user && (

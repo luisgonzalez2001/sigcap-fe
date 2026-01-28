@@ -665,7 +665,7 @@ const PrestamosPage = () => {
                 const saldo =
                   prestamo.monto_total -
                   prestamo.monto_abonado +
-                  prestamo.intereses_mora;
+                  Number.parseFloat(String(prestamo.intereses_mora ?? "0"));
                 const porcentaje =
                   (prestamo.monto_abonado / prestamo.monto_total) * 100;
 
