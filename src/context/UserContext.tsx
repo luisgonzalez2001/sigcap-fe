@@ -23,6 +23,7 @@ interface User {
 interface UserContextProps {
   user: User | null;
   socioExtra: SocioExtra | null;
+  loadingPartner: boolean;
   setUserUser: (user: User | null) => void;
   setSocioExtra: (extra: SocioExtra | null) => void;
 }
@@ -41,11 +42,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
  * @deprecated Usar useAuth de AuthContext en su lugar
  */
 export function useUser(): UserContextProps {
-  const { user, socioExtra, setUser, setSocioExtra } = useAuth();
+  const { user, socioExtra, loadingPartner, setUser, setSocioExtra } =
+    useAuth();
 
   return {
     user: user as User | null,
     socioExtra,
+    loadingPartner,
     setUserUser: (newUser) => setUser(newUser as UserResponse | null),
     setSocioExtra,
   };

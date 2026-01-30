@@ -53,6 +53,14 @@ const Header = () => {
                 },
               },
               {
+                label: "Solicitudes",
+                icon: "pi pi-user-plus",
+                command: () => {
+                  router.push("/solicitudes-asociacion");
+                  setSidebarVisible(false);
+                },
+              },
+              {
                 label: "Ahorros",
                 icon: "pi pi-wallet",
                 command: () => {

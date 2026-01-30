@@ -18,13 +18,14 @@ import type {
   FiltrosPrestamoDto,
 } from "@/types/Prestamo";
 import { useUser } from "@/context/UserContext";
+import { SolicitudAsociacionWrapper } from "@/components/SolicitudAsociacion/SolicitudAsociacionWrapper";
 import PrestamoForm from "@/components/PrestamoForm/PrestamoForm";
 import PrestamoDetalleDialog from "@/components/PrestamoForm/PrestamoDetalleDialog";
 
 const PrestamosPage = () => {
   const toast = useRef<Toast>(null);
   const dt = useRef<DataTable<Prestamo[]>>(null);
-  const { user, socioExtra } = useUser();
+  const { user, socioExtra, loadingPartner } = useUser();
   const isAdmin = user?.rol === "admin";
 
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
@@ -327,6 +328,16 @@ const PrestamosPage = () => {
       tooltip="Ver detalle"
     />
   );
+
+  // Si el usuario es socio pero no tiene socioExtra asignado, mostrar wrapper
+  if (!isAdmin && !loadingPartner && !socioExtra?.id) {
+    return (
+      <>
+        <Toast ref={toast} />
+        <SolicitudAsociacionWrapper mensaje="Aún no tienes un socio asignado" />
+      </>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6">

@@ -3,6 +3,7 @@
 import { UserProvider } from "@/context/UserContext";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
+import { ToastProvider } from "@/context/ToastContext";
 import { ProtectedRoute } from "@/components/Auth/ProtectedRoute";
 import { InactivityWarningDialog } from "@/components/Auth/InactivityWarningDialog";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -73,33 +74,35 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <PrimeReactProvider value={primeConfig}>
-      <NotificationsProvider>
-        <ProtectedRoute>
-          <Header />
+      <ToastProvider>
+        <NotificationsProvider>
+          <ProtectedRoute>
+            <Header />
 
-          <div className="grid">
-            {isAuthenticated && user && (
-              <div className="hidden lg:block lg:col-2">
-                <SideBar />
+            <div className="grid">
+              {isAuthenticated && user && (
+                <div className="hidden lg:block lg:col-2 p-0">
+                  <SideBar />
+                </div>
+              )}
+
+              <div
+                className={
+                  isAuthenticated && user ? "col-12 lg:col-10 p-0" : "col-12"
+                }
+              >
+                {children}
               </div>
-            )}
-
-            <div
-              className={
-                isAuthenticated && user ? "col-12 lg:col-10" : "col-12"
-              }
-            >
-              {children}
             </div>
-          </div>
 
-          {/* Botón flotante para agregar abono semanal (solo admin) */}
-          <FloatingActionButton />
+            {/* Botón flotante para agregar abono semanal (solo admin) */}
+            <FloatingActionButton />
 
-          {/* Diálogo de advertencia de inactividad */}
-          <InactivityWarningDialog visible={showInactivityWarning} />
-        </ProtectedRoute>
-      </NotificationsProvider>
+            {/* Diálogo de advertencia de inactividad */}
+            <InactivityWarningDialog visible={showInactivityWarning} />
+          </ProtectedRoute>
+        </NotificationsProvider>
+      </ToastProvider>
     </PrimeReactProvider>
   );
 }

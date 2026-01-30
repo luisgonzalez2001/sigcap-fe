@@ -32,7 +32,15 @@ const AhorrosPage = () => {
         api.get<CajaSemanal[]>("/caja-semanal"),
         api.get<ResumenGeneral>("/caja-semanal/resumen"),
       ]);
-      setAbonos(abonosRes.data);
+
+      // Ordenar abonos por fecha más reciente primero
+      const abonosOrdenados = abonosRes.data.sort((a, b) => {
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      });
+
+      setAbonos(abonosOrdenados);
       setResumen(resumenRes.data);
     } catch (err) {
       console.error("Error al cargar datos:", err);

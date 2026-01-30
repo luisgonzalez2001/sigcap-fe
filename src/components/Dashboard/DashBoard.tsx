@@ -12,6 +12,7 @@ import { Skeleton } from "primereact/skeleton";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { useUser } from "@/context/UserContext";
+import { SolicitudAsociacionWrapper } from "@/components/SolicitudAsociacion/SolicitudAsociacionWrapper";
 import type {
   DashboardAdmin,
   DashboardSocio,
@@ -21,7 +22,7 @@ import type {
 } from "@/types/Dashboard";
 
 const Dashboard: React.FC = () => {
-  const { user, socioExtra } = useUser();
+  const { user, socioExtra, loadingPartner } = useUser();
   const router = useRouter();
   const toast = useRef<Toast>(null);
 
@@ -79,6 +80,13 @@ const Dashboard: React.FC = () => {
 
     loadDashboard();
   }, [user, userRole, socioId]);
+
+  // Si el usuario es socio pero no tiene socioExtra asignado, mostrar wrapper
+  if (userRole === "socio" && !loadingPartner && !socioId) {
+    return (
+      <SolicitudAsociacionWrapper mensaje="Aún no tienes un socio asignado" />
+    );
+  }
 
   // Formatear moneda
   const formatCurrency = (value: number) => {
@@ -655,23 +663,6 @@ const Dashboard: React.FC = () => {
           </Card>
         </div>
 
-        {/* Gráficas */}
-        <div className="flex flex-column lg:flex-row gap-3 mb-4">
-          <Card
-            className="shadow-sm w-full lg:w-8"
-            title="Tendencia de Capital"
-          >
-            <Chart type="line" data={getChartData()} className="h-64" />
-          </Card>
-          <Card className="shadow-sm w-full lg:w-4" title="Estado de Préstamos">
-            <Chart
-              type="doughnut"
-              data={getRiesgoChartData()}
-              className="h-64"
-            />
-          </Card>
-        </div>
-
         {/* Tablas */}
         <div className="flex flex-column lg:flex-row gap-3 mb-4">
           <Card className="shadow-sm w-full" title="Actividad Reciente">
@@ -747,28 +738,21 @@ const Dashboard: React.FC = () => {
           </Card>
         </div>
 
-        {/* Acciones rápidas */}
-        <div className="flex flex-wrap gap-3">
-          <Button
-            label="Registrar Ahorro"
-            icon="pi pi-plus"
-            style={{ backgroundColor: "#2563EB", border: "none" }}
-            onClick={() => router.push("/ahorros")}
-          />
-          <Button
-            label="Nuevo Préstamo"
-            icon="pi pi-file"
-            severity="secondary"
-            outlined
-            onClick={() => router.push("/prestamos")}
-          />
-          <Button
-            label="Ver Socios"
-            icon="pi pi-users"
-            severity="secondary"
-            outlined
-            onClick={() => router.push("/socios")}
-          />
+        {/* Gráficas */}
+        <div className="flex flex-column lg:flex-row gap-3 mb-4">
+          <Card
+            className="shadow-sm w-full lg:w-8"
+            title="Tendencia de Capital"
+          >
+            <Chart type="line" data={getChartData()} className="h-64" />
+          </Card>
+          <Card className="shadow-sm w-full lg:w-4" title="Estado de Préstamos">
+            <Chart
+              type="doughnut"
+              data={getRiesgoChartData()}
+              className="h-64"
+            />
+          </Card>
         </div>
       </div>
     );
@@ -958,14 +942,14 @@ const Dashboard: React.FC = () => {
                 paginator
                 rows={5}
               >
-                <Column 
-                  header="Actividad" 
-                  body={actividadBodyTemplate} 
+                <Column
+                  header="Actividad"
+                  body={actividadBodyTemplate}
                   style={{ minWidth: "160px" }}
                 />
-                <Column 
-                  header="Monto" 
-                  body={montoActividadTemplate} 
+                <Column
+                  header="Monto"
+                  body={montoActividadTemplate}
                   style={{ minWidth: "80px" }}
                 />
                 <Column
@@ -1013,22 +997,6 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </Card>
-        </div>
-
-        {/* Acciones */}
-        <div className="flex flex-wrap gap-3">
-          <Button
-            label="Ver Mis Préstamos"
-            icon="pi pi-money-bill"
-            className="bg-blue-600 border-blue-600"
-            onClick={() => router.push("/prestamos")}
-          />
-          <Button
-            label="Ver Mi Historial"
-            icon="pi pi-history"
-            severity="secondary"
-            outlined
-          />
         </div>
       </div>
     );

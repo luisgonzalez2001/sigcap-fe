@@ -181,6 +181,20 @@ const ProfilePage = () => {
       return;
     }
 
+    // Verificar que la nueva contraseña no sea igual a la actual
+    if (
+      user.rol === "socio" &&
+      passwordForm.currentPassword === passwordForm.newPassword
+    ) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "La nueva contraseña debe ser diferente a la actual",
+        life: 3000,
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 

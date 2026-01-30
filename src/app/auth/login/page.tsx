@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/services/api";
 import type { AxiosError } from "axios";
 import type { LoginResponse } from "@/types/Auth";
-import { getErrorMessage, getErrorAction } from "@/types/Auth";
+import { getErrorMessage } from "@/types/Auth";
 
 // PrimeReact
 import { Card } from "primereact/card";
@@ -124,45 +124,20 @@ function LoginForm() {
     } catch (error) {
       const err = error as AxiosError<{ message?: string }>;
       const errorCode = err.response?.data?.message || "";
-      const action = getErrorAction(errorCode);
-
-      if (action === "redirect-verify") {
-        router.push("/auth/verify");
-        return;
-      }
 
       // Mapear errores específicos
       if (err.response) {
         switch (err.response.status) {
           case 401:
-            if (errorCode === "EMAIL_NOT_VERIFIED") {
-              setErrorMessage(
-                "Tu email no ha sido verificado. Revisa tu bandeja de entrada.",
-              );
-            } else {
-              setErrorMessage(getErrorMessage(errorCode));
-            }
-            break;
           case 403:
-            if (errorCode === "EMAIL_NOT_VERIFIED") {
-              setErrorMessage(
-                "Tu email no ha sido verificado. Revisa tu bandeja de entrada para verificar tu cuenta.",
-              );
-            } else if (errorCode === "USER_INACTIVE") {
-              setErrorMessage(
-                "Tu cuenta ha sido desactivada. Contacta al administrador.",
-              );
-            } else if (errorCode === "INVALID_PASSWORD") {
-              setErrorMessage("Contraseña incorrecta.");
-            } else {
-              setErrorMessage(getErrorMessage(errorCode));
-            }
-            break;
           case 404:
-            setErrorMessage("Usuario no encontrado.");
+            // Usar el mensaje mapeado del error
+            setErrorMessage(getErrorMessage(errorCode));
             break;
           default:
-            setErrorMessage(getErrorMessage(errorCode));
+            setErrorMessage(
+              getErrorMessage(errorCode) || "Ha ocurrido un error de conexión.",
+            );
         }
       } else {
         setErrorMessage(err.message || "Ha ocurrido un error de conexión.");

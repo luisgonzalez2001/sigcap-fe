@@ -45,6 +45,7 @@ interface AuthContextProps {
   user: UserResponse | null;
   socioExtra: SocioExtra | null;
   isLoading: boolean;
+  loadingPartner: boolean;
   isAuthenticated: boolean;
   showInactivityWarning: boolean;
   login: (loginResponse: LoginResponse) => Promise<void>;
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<UserResponse | null>(null);
   const [socioExtra, setSocioExtraState] = useState<SocioExtra | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingPartner, setLoadingPartner] = useState(false);
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const router = useRouter();
 
@@ -314,6 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Si es socio, obtener datos adicionales
       if (loginResponse.user.rol === "socio") {
+        setLoadingPartner(true);
         try {
           const partnerRes = await api.get(
             `/partners/usuario/${loginResponse.user.id}`,
@@ -330,9 +333,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
             saveSocioExtra(extra);
             setSocioExtraState(extra);
+          } else {
+            // No hay socio asignado aún
+            saveSocioExtra(null);
+            setSocioExtraState(null);
           }
-        } catch (error) {
-          console.error("Error al obtener datos del socio:", error);
+        } catch {
+          // Error 404 significa que el usuario no tiene un socio asignado aún
+          // Este no es un error crítico, simplemente significa que necesita solicitar ser socio
+          console.log("Usuario sin socio asignado");
+          saveSocioExtra(null);
+          setSocioExtraState(null);
+        } finally {
+          setLoadingPartner(false);
         }
       } else {
         // Admin no tiene socioExtra
@@ -400,6 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     socioExtra,
     isLoading,
+    loadingPartner,
     isAuthenticated,
     showInactivityWarning,
     login,

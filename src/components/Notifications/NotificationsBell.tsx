@@ -2,7 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useNotifications } from "@/context/NotificationsContext";
-import type { Notification, NotificationType } from "@/types/Notification";
+import { useToast } from "@/context/ToastContext";
+import api from "@/services/api";
+import type {
+  Notification,
+  NotificationType,
+  SolicitudAsociacionData,
+} from "@/types/Notification";
+import type { AxiosError } from "axios";
 
 // PrimeReact
 import { Button } from "primereact/button";
@@ -11,6 +18,8 @@ import { OverlayPanel } from "primereact/overlaypanel";
 import { Divider } from "primereact/divider";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Tooltip } from "primereact/tooltip";
+import { Dialog } from "primereact/dialog";
+import { InputTextarea } from "primereact/inputtextarea";
 
 /**
  * Obtener icono según tipo de notificación
@@ -25,12 +34,18 @@ function getNotificationIcon(tipo: NotificationType | string): string {
       return "pi pi-check-circle";
     case "prestamo_rechazado":
       return "pi pi-times-circle";
+    case "prestamo_cancelado":
+      return "pi pi-ban";
     case "recordatorio_pago":
       return "pi pi-clock";
     case "prestamo_vencido":
       return "pi pi-exclamation-triangle";
     case "socio_aprobado":
       return "pi pi-user-plus";
+    case "socio_rechazado":
+      return "pi pi-user-minus";
+    case "solicitud_asociacion":
+      return "pi pi-user-edit";
     case "sistema":
       return "pi pi-info-circle";
     default:
@@ -51,12 +66,18 @@ function getNotificationBgColor(tipo: NotificationType | string): string {
       return "bg-teal-100";
     case "prestamo_rechazado":
       return "bg-red-100";
+    case "prestamo_cancelado":
+      return "bg-orange-100";
     case "recordatorio_pago":
       return "bg-orange-100";
     case "prestamo_vencido":
       return "bg-red-200";
     case "socio_aprobado":
       return "bg-purple-100";
+    case "socio_rechazado":
+      return "bg-pink-100";
+    case "solicitud_asociacion":
+      return "bg-cyan-100";
     case "sistema":
       return "bg-indigo-100";
     default:
@@ -77,12 +98,18 @@ function getNotificationIconColor(tipo: NotificationType | string): string {
       return "text-teal-600";
     case "prestamo_rechazado":
       return "text-red-600";
+    case "prestamo_cancelado":
+      return "text-orange-600";
     case "recordatorio_pago":
       return "text-orange-600";
     case "prestamo_vencido":
       return "text-red-700";
     case "socio_aprobado":
       return "text-purple-600";
+    case "socio_rechazado":
+      return "text-pink-600";
+    case "solicitud_asociacion":
+      return "text-cyan-600";
     case "sistema":
       return "text-indigo-600";
     default:
@@ -136,82 +163,250 @@ function NotificationItem({
   notification,
   onMarkAsRead,
   onDelete,
+  onActionComplete,
 }: {
   notification: Notification;
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
+  onActionComplete?: () => void;
 }) {
+  const [loading, setLoading] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+  const toast = useToast();
+
   const bgColor = getNotificationBgColor(notification.tipo);
   const iconColor = getNotificationIconColor(notification.tipo);
   const icon = getNotificationIcon(notification.tipo);
   const priorityBorder = getPriorityBorderClass(notification.prioridad);
 
-  return (
-    <div
-      className={`p-3 cursor-pointer transition-colors transition-duration-200 hover:surface-100 ${priorityBorder} ${
-        !notification.leida ? "surface-50" : ""
-      }`}
-      onClick={() => {
-        if (!notification.leida) {
-          onMarkAsRead(notification.id);
-        }
-      }}
-    >
-      <div className="flex gap-3">
-        {/* Icono */}
-        <div
-          className={`flex-shrink-0 flex align-items-center justify-content-center border-circle ${bgColor}`}
-          style={{ width: "40px", height: "40px" }}
-        >
-          <i
-            className={`${icon} ${iconColor}`}
-            style={{ fontSize: "1.1rem" }}
-          />
-        </div>
+  // Verificar si es una solicitud de asociación y extraer el ID
+  const isSolicitudAsociacion = notification.tipo === "solicitud_asociacion";
+  const solicitudId =
+    isSolicitudAsociacion &&
+    notification.datos_json &&
+    "solicitud_id" in notification.datos_json
+      ? (notification.datos_json as SolicitudAsociacionData).solicitud_id
+      : undefined;
 
-        {/* Contenido */}
-        <div className="flex-1 min-w-0">
-          <div className="flex align-items-start justify-content-between gap-2">
-            <p
-              className={`m-0 text-sm line-height-3 ${
-                !notification.leida ? "font-semibold text-900" : "text-700"
-              }`}
-            >
-              {notification.titulo}
-            </p>
-            {!notification.leida && (
-              <span
-                className="flex-shrink-0 border-circle bg-primary"
-                style={{ width: "8px", height: "8px", marginTop: "6px" }}
-              />
-            )}
-          </div>
-          <p className="m-0 mt-1 text-sm text-600 line-height-3 white-space-normal">
-            {notification.mensaje}
-          </p>
-          <div className="flex align-items-center justify-content-between mt-2">
-            <span className="text-xs text-400">
-              {formatTimeAgo(notification.fecha_creacion)}
-            </span>
-            <Button
-              icon="pi pi-trash"
-              rounded
-              text
-              severity="danger"
-              size="small"
-              className="p-0"
-              style={{ width: "24px", height: "24px" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(notification.id);
-              }}
-              tooltip="Eliminar"
-              tooltipOptions={{ position: "left" }}
+  const handleAprobar = async () => {
+    if (!solicitudId) return;
+
+    setLoading(true);
+    try {
+      await api.post("/solicitudes-asociacion/aprobar", {
+        solicitud_id: solicitudId,
+      });
+
+      toast.showSuccess(
+        "Solicitud Aprobada",
+        "El usuario ahora es socio de SIGCAP",
+      );
+
+      // Marcar notificación como leída y recargar
+      onMarkAsRead(notification.id);
+      onActionComplete?.();
+    } catch (error) {
+      const err = error as AxiosError<{ message?: string }>;
+      toast.showError(
+        "Error",
+        err.response?.data?.message ||
+          "No se pudo aprobar la solicitud. Intenta de nuevo.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRechazar = async () => {
+    if (!solicitudId) return;
+
+    setLoading(true);
+    try {
+      await api.post("/solicitudes-asociacion/rechazar", {
+        solicitud_id: solicitudId,
+        motivo_rechazo: motivoRechazo || undefined,
+      });
+
+      toast.showInfo("Solicitud Rechazada", "Se ha notificado al usuario");
+
+      // Marcar notificación como leída y recargar
+      onMarkAsRead(notification.id);
+      setShowRejectDialog(false);
+      setMotivoRechazo("");
+      onActionComplete?.();
+    } catch (error) {
+      const err = error as AxiosError<{ message?: string }>;
+      toast.showError(
+        "Error",
+        err.response?.data?.message ||
+          "No se pudo rechazar la solicitud. Intenta de nuevo.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div
+        className={`p-3 cursor-pointer transition-colors transition-duration-200 hover:surface-100 ${priorityBorder} ${
+          !notification.leida ? "surface-50" : ""
+        }`}
+        onClick={() => {
+          if (!notification.leida && !isSolicitudAsociacion) {
+            onMarkAsRead(notification.id);
+          }
+        }}
+      >
+        <div className="flex gap-3">
+          {/* Icono */}
+          <div
+            className={`flex-shrink-0 flex align-items-center justify-content-center border-circle ${bgColor}`}
+            style={{ width: "40px", height: "40px" }}
+          >
+            <i
+              className={`${icon} ${iconColor}`}
+              style={{ fontSize: "1.1rem" }}
             />
+          </div>
+
+          {/* Contenido */}
+          <div className="flex-1 min-w-0">
+            <div className="flex align-items-start justify-content-between gap-2">
+              <p
+                className={`m-0 text-sm line-height-3 ${
+                  !notification.leida ? "font-semibold text-900" : "text-700"
+                }`}
+              >
+                {notification.titulo}
+              </p>
+              {!notification.leida && (
+                <span
+                  className="flex-shrink-0 border-circle bg-primary"
+                  style={{ width: "8px", height: "8px", marginTop: "6px" }}
+                />
+              )}
+            </div>
+            <p className="m-0 mt-1 text-sm text-600 line-height-3 white-space-normal">
+              {notification.mensaje}
+            </p>
+
+            {/* Botones de acción para solicitudes de asociación */}
+            {isSolicitudAsociacion && solicitudId && (
+              <div className="flex gap-2 mt-3">
+                <Button
+                  label="Aprobar"
+                  icon="pi pi-check"
+                  size="small"
+                  severity="success"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAprobar();
+                  }}
+                  loading={loading}
+                  className="flex-1"
+                />
+                <Button
+                  label="Rechazar"
+                  icon="pi pi-times"
+                  size="small"
+                  severity="danger"
+                  outlined
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRejectDialog(true);
+                  }}
+                  disabled={loading}
+                  className="flex-1"
+                />
+              </div>
+            )}
+
+            <div className="flex align-items-center justify-content-between mt-2">
+              <span className="text-xs text-400">
+                {formatTimeAgo(notification.fecha_creacion)}
+              </span>
+              <Button
+                icon="pi pi-trash"
+                rounded
+                text
+                severity="danger"
+                size="small"
+                className="p-0"
+                style={{ width: "24px", height: "24px" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(notification.id);
+                }}
+                tooltip="Eliminar"
+                tooltipOptions={{ position: "left" }}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Dialog para rechazar con motivo */}
+      <Dialog
+        header="Rechazar Solicitud"
+        visible={showRejectDialog}
+        style={{ width: "90vw", maxWidth: "450px" }}
+        onHide={() => {
+          if (!loading) {
+            setShowRejectDialog(false);
+            setMotivoRechazo("");
+          }
+        }}
+        draggable={false}
+        resizable={false}
+      >
+        <div className="flex flex-column gap-3">
+          <p className="m-0 text-600">
+            ¿Estás seguro de rechazar esta solicitud? Puedes agregar un motivo
+            (opcional) que será notificado al usuario.
+          </p>
+
+          <div className="flex flex-column gap-2">
+            <label htmlFor="motivo" className="font-semibold text-sm">
+              Motivo del rechazo (Opcional)
+            </label>
+            <InputTextarea
+              id="motivo"
+              value={motivoRechazo}
+              onChange={(e) => setMotivoRechazo(e.target.value)}
+              rows={4}
+              placeholder="Ej: Documentación incompleta, monto no disponible, etc."
+              maxLength={500}
+              disabled={loading}
+            />
+            <small className="text-400">
+              {motivoRechazo.length}/500 caracteres
+            </small>
+          </div>
+
+          <div className="flex gap-2 justify-content-end mt-2">
+            <Button
+              label="Cancelar"
+              icon="pi pi-times"
+              outlined
+              onClick={() => {
+                setShowRejectDialog(false);
+                setMotivoRechazo("");
+              }}
+              disabled={loading}
+            />
+            <Button
+              label="Rechazar Solicitud"
+              icon="pi pi-check"
+              severity="danger"
+              onClick={handleRechazar}
+              loading={loading}
+            />
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 }
 
@@ -355,6 +550,7 @@ export function NotificationsBell() {
                     notification={notification}
                     onMarkAsRead={markAsRead}
                     onDelete={removeNotification}
+                    onActionComplete={fetchNotifications}
                   />
                   {index < notifications.length - 1 && (
                     <Divider className="my-0" />

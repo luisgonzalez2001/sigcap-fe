@@ -40,6 +40,14 @@ const SideBar: React.FC = () => {
             },
           },
           {
+            label: "Solicitudes",
+            icon: "pi pi-user-plus",
+            command: () => {
+              setSelectedView("solicitudes");
+              router.push("/solicitudes-asociacion");
+            },
+          },
+          {
             label: "Ahorros",
             icon: "pi pi-wallet",
             command: () => {
@@ -103,8 +111,9 @@ const SideBar: React.FC = () => {
     <div
       style={{
         position: "sticky",
-        top: "64px",
-        height: "calc(100vh - 64px)",
+        top: "77px", // Altura del header
+        height: "calc(100vh - 100px)",
+        overflowY: "auto",
       }}
     >
       {/* Sidebar para desktop */}

@@ -100,6 +100,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (!user?.id) return;
 
       try {
+        // Marcar como leída via REST API (incluye header x-user-id)
         await markNotificationAsRead(notificationId, user.id);
 
         // Actualizar estado local
@@ -112,11 +113,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
 
-        // También notificar via WebSocket
-        notificationsSocket.markAsRead(notificationId);
+        // NOTA: No usamos WebSocket para marcar como leída porque
+        // el backend requiere el header HTTP x-user-id que solo
+        // está disponible en peticiones REST, no en eventos WebSocket
       } catch (err) {
         console.error("Error al marcar notificación como leída:", err);
         setError("Error al marcar como leída");
+
+        // Mostrar el error específico si está disponible
+        if (err instanceof Error) {
+          console.error("Detalle del error:", err.message);
+        }
       }
     },
     [user?.id],

@@ -8,9 +8,12 @@ export type NotificationType =
     | "abono_prestamo"
     | "prestamo_aprobado"
     | "prestamo_rechazado"
+    | "prestamo_cancelado"
     | "recordatorio_pago"
     | "prestamo_vencido"
     | "socio_aprobado"
+    | "socio_rechazado"
+    | "solicitud_asociacion"
     | "sistema"
     | "general";
 
@@ -38,6 +41,16 @@ export interface PrestamoAprobadoData {
     monto_total: number;
     plazo_meses: number;
     monto_cuota: number;
+}
+
+/**
+ * Datos adicionales para notificación de préstamo cancelado
+ */
+export interface PrestamoCanceladoData {
+    prestamo_id: string;
+    monto_original: number;
+    saldo_pendiente: number;
+    motivo_cancelacion?: string;
 }
 
 /**
@@ -83,6 +96,24 @@ export interface SocioAprobadoData {
 }
 
 /**
+ * Datos adicionales para notificación de socio rechazado
+ */
+export interface SocioRechazadoData {
+    motivo_rechazo?: string;
+}
+
+/**
+ * Datos adicionales para notificación de solicitud de asociación
+ */
+export interface SolicitudAsociacionData {
+    solicitud_id: string;
+    nombre_usuario: string;
+    email_usuario: string;
+    telefono?: string;
+    fecha_solicitud: string;
+}
+
+/**
  * Datos adicionales para notificación de sistema (préstamo pagado)
  */
 export interface SistemaPrestamoPagadoData {
@@ -104,10 +135,13 @@ export interface SistemaDatosActualizadosData {
 export type NotificationData =
     | AbonoSemanalData
     | PrestamoAprobadoData
+    | PrestamoCanceladoData
     | AbonoPrestamoData
     | RecordatorioPagoData
     | PrestamoVencidoData
     | SocioAprobadoData
+    | SocioRechazadoData
+    | SolicitudAsociacionData
     | SistemaPrestamoPagadoData
     | SistemaDatosActualizadosData
     | Record<string, unknown>;

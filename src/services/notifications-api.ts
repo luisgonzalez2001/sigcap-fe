@@ -77,7 +77,7 @@ export async function markNotificationAsRead(
 ): Promise<Notification> {
     const { data } = await notificationsApi.patch<
         NotificationApiResponse<Notification>
-    >(`/${notificationId}/read`, null, {
+    >(`/${notificationId}/read`, {}, {
         headers: {
             "x-user-id": userId,
         },

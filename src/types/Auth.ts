@@ -73,8 +73,8 @@ export const AUTH_ERRORS = {
         action: "show-error" as const,
     },
     EMAIL_NOT_VERIFIED: {
-        message: "Tu email no ha sido verificado. Revisa tu bandeja de entrada.",
-        action: "redirect-verify" as const,
+        message: "Tu email no ha sido verificado. Revisa tu bandeja de entrada para verificar tu cuenta.",
+        action: "show-error" as const,
     },
     USER_INACTIVE: {
         message: "Tu cuenta ha sido desactivada. Contacta al administrador.",
