@@ -54,82 +54,82 @@ function getNotificationIcon(tipo: NotificationType | string): string {
 }
 
 /**
- * Obtener color de fondo según tipo de notificación
+ * Obtener color de fondo según tipo de notificación (formato hex)
  */
 function getNotificationBgColor(tipo: NotificationType | string): string {
   switch (tipo) {
     case "abono_semanal":
-      return "bg-green-100";
+      return "#dcfce7"; // Verde claro
     case "abono_prestamo":
-      return "bg-blue-100";
+      return "#dbeafe"; // Azul claro
     case "prestamo_aprobado":
-      return "bg-teal-100";
+      return "#ccfbf1"; // Teal claro
     case "prestamo_rechazado":
-      return "bg-red-100";
+      return "#fee2e2"; // Rojo claro
     case "prestamo_cancelado":
-      return "bg-orange-100";
+      return "#ffedd5"; // Naranja claro
     case "recordatorio_pago":
-      return "bg-orange-100";
+      return "#ffedd5"; // Naranja claro
     case "prestamo_vencido":
-      return "bg-red-200";
+      return "#fecaca"; // Rojo medio
     case "socio_aprobado":
-      return "bg-purple-100";
+      return "#f3e8ff"; // Púrpura claro
     case "socio_rechazado":
-      return "bg-pink-100";
+      return "#fce7f3"; // Rosa claro
     case "solicitud_asociacion":
-      return "bg-cyan-100";
+      return "#cffafe"; // Cyan claro
     case "sistema":
-      return "bg-indigo-100";
+      return "#e0e7ff"; // Índigo claro
     default:
-      return "bg-gray-100";
+      return "#f3f4f6"; // Gris claro
   }
 }
 
 /**
- * Obtener color de icono según tipo de notificación
+ * Obtener color de icono según tipo de notificación (formato hex)
  */
 function getNotificationIconColor(tipo: NotificationType | string): string {
   switch (tipo) {
     case "abono_semanal":
-      return "text-green-600";
+      return "#16a34a"; // Verde
     case "abono_prestamo":
-      return "text-blue-600";
+      return "#2563eb"; // Azul
     case "prestamo_aprobado":
-      return "text-teal-600";
+      return "#0d9488"; // Teal
     case "prestamo_rechazado":
-      return "text-red-600";
+      return "#dc2626"; // Rojo
     case "prestamo_cancelado":
-      return "text-orange-600";
+      return "#ea580c"; // Naranja
     case "recordatorio_pago":
-      return "text-orange-600";
+      return "#ea580c"; // Naranja
     case "prestamo_vencido":
-      return "text-red-700";
+      return "#b91c1c"; // Rojo oscuro
     case "socio_aprobado":
-      return "text-purple-600";
+      return "#9333ea"; // Púrpura
     case "socio_rechazado":
-      return "text-pink-600";
+      return "#db2777"; // Rosa
     case "solicitud_asociacion":
-      return "text-cyan-600";
+      return "#0891b2"; // Cyan
     case "sistema":
-      return "text-indigo-600";
+      return "#4f46e5"; // Índigo
     default:
-      return "text-gray-600";
+      return "#4b5563"; // Gris
   }
 }
 
 /**
- * Obtener clase de borde según prioridad
+ * Obtener color de borde según prioridad (formato hex)
  */
-function getPriorityBorderClass(prioridad: string): string {
+function getPriorityBorderColor(prioridad: string): string {
   switch (prioridad) {
     case "alta":
-      return "border-left-3 border-red-500";
+      return "#ef4444"; // Rojo
     case "media":
-      return "border-left-3 border-yellow-500";
+      return "#eab308"; // Amarillo
     case "baja":
-      return "border-left-3 border-green-500";
+      return "#22c55e"; // Verde
     default:
-      return "border-left-3 border-gray-300";
+      return "#d1d5db"; // Gris
   }
 }
 
@@ -178,7 +178,7 @@ function NotificationItem({
   const bgColor = getNotificationBgColor(notification.tipo);
   const iconColor = getNotificationIconColor(notification.tipo);
   const icon = getNotificationIcon(notification.tipo);
-  const priorityBorder = getPriorityBorderClass(notification.prioridad);
+  const priorityBorderColor = getPriorityBorderColor(notification.prioridad);
 
   // Verificar si es una solicitud de asociación y extraer el ID
   const isSolicitudAsociacion = notification.tipo === "solicitud_asociacion";
@@ -250,9 +250,11 @@ function NotificationItem({
   return (
     <>
       <div
-        className={`p-3 cursor-pointer transition-colors transition-duration-200 hover:surface-100 ${priorityBorder} ${
-          !notification.leida ? "surface-50" : ""
-        }`}
+        className={`p-3 cursor-pointer transition-colors transition-duration-200 hover:surface-100`}
+        style={{
+          borderLeft: `3px solid ${priorityBorderColor}`,
+          backgroundColor: !notification.leida ? "#f9fafb" : "transparent",
+        }}
         onClick={() => {
           if (!notification.leida && !isSolicitudAsociacion) {
             onMarkAsRead(notification.id);
@@ -262,12 +264,19 @@ function NotificationItem({
         <div className="flex gap-3">
           {/* Icono */}
           <div
-            className={`flex-shrink-0 flex align-items-center justify-content-center border-circle ${bgColor}`}
-            style={{ width: "40px", height: "40px" }}
+            className="flex-shrink-0 flex align-items-center justify-content-center border-circle"
+            style={{
+              width: "40px",
+              height: "40px",
+              backgroundColor: bgColor,
+            }}
           >
             <i
-              className={`${icon} ${iconColor}`}
-              style={{ fontSize: "1.1rem" }}
+              className={icon}
+              style={{
+                fontSize: "1.1rem",
+                color: iconColor,
+              }}
             />
           </div>
 
@@ -453,7 +462,7 @@ export function NotificationsBell() {
         text
         severity="secondary"
         onClick={handleToggle}
-        className="relative p-overlay-badge"
+        className="relative"
         style={{ width: "2.5rem", height: "2.5rem" }}
         data-pr-tooltip={
           isConnected ? "Notificaciones" : "Sin conexión a notificaciones"
@@ -465,7 +474,11 @@ export function NotificationsBell() {
             value={unreadCount > 99 ? "99+" : unreadCount.toString()}
             severity="danger"
             className="absolute"
-            style={{ top: "-4px", right: "-4px", fontSize: "0.65rem" }}
+            style={{
+              top: "3px",
+              fontSize: "1rem",
+              zIndex: 1,
+            }}
           />
         )}
       </Button>

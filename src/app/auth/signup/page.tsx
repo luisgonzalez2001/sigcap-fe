@@ -105,19 +105,20 @@ const SignUP = () => {
   // Mostrar loading mientras se monta el componente para evitar errores de hidratación
   if (!mounted) {
     return (
-      <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100">
+      <div className="signup-loading">
         <ProgressSpinner
           style={{ width: "50px", height: "50px" }}
           strokeWidth="4"
         />
+        <p>Cargando...</p>
       </div>
     );
   }
 
   return (
-    <div className="signup-container flex justify-content-center align-items-center mt-6 bg-gray-100">
-      <Card className="w-full max-w-25rem shadow-3 p-3 m-3">
-        <h2 className="text-center mb-4">
+    <div className="signup-container">
+      <Card className="signup-card w-full max-w-25rem p-3 m-3">
+        <h2 className="signup-title">
           {isSignUp ? "Registro" : "Añadir Usuario"}
         </h2>
 
@@ -246,7 +247,7 @@ const SignUP = () => {
             type="submit"
             label="Registrar Usuario"
             icon="pi pi-user-plus"
-            className="w-full"
+            className="w-full signup-button"
             disabled={
               userCreated ||
               (isSignUp && (!isPasswordValid || !doPasswordsMatch))
@@ -255,9 +256,9 @@ const SignUP = () => {
         </form>
 
         {isSignUp && (
-          <p className="mt-4 text-center text-sm">
+          <p className="mt-4 text-center text-sm text-600">
             ¿Ya tienes una cuenta?{" "}
-            <Link href="/auth/login" className="text-primary">
+            <Link href="/auth/login" className="signup-link">
               Inicia sesión
             </Link>
           </p>

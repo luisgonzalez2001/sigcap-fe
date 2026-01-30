@@ -150,19 +150,20 @@ function LoginForm() {
   // Mostrar loading mientras se monta el componente para evitar errores de hidratación
   if (!mounted) {
     return (
-      <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100">
+      <div className="login-loading">
         <ProgressSpinner
           style={{ width: "50px", height: "50px" }}
           strokeWidth="4"
         />
+        <p>Cargando...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex justify-content-center align-items-center mt-8 bg-gray-100">
-      <Card className="w-25rem shadow-3">
-        <h2 className="text-center mb-4">Iniciar Sesión</h2>
+    <div className="login-container">
+      <Card className="login-card">
+        <h2 className="login-title">Iniciar Sesión</h2>
 
         {/* Mensaje informativo (razón de redirección) */}
         {infoMessage && (
@@ -188,7 +189,7 @@ function LoginForm() {
 
         <form onSubmit={handleLogin} className="flex flex-column gap-3">
           {/* Selector de método de login */}
-          <div className="flex text-center mb-2">
+          <div className="login-method-selector mb-2 text-center">
             <SelectButton
               value={loginMethod}
               onChange={(e) => {
@@ -245,22 +246,22 @@ function LoginForm() {
             type="submit"
             label="Ingresar"
             icon="pi pi-sign-in"
-            className="w-full"
+            className="w-full login-button"
             loading={loading}
           />
         </form>
 
-        <p className="mt-3 text-center text-sm">
+        <p className="mt-3 text-center text-sm text-600">
           ¿No tienes una cuenta?{" "}
-          <Link href="/auth/signup" className="text-primary">
+          <Link href="/auth/signup" className="login-link">
             Regístrate
           </Link>
         </p>
 
         {errorMessage === "Contraseña incorrecta." && (
-          <p className="text-red-500 text-sm mt-2 text-center">
+          <p className="text-sm mt-2 text-center" style={{ color: "#ef4444" }}>
             Si olvidaste tu contraseña, puedes{" "}
-            <Link href="/auth/recover-account" className="text-primary">
+            <Link href="/auth/recover-account" className="login-link">
               restablecerla aquí
             </Link>
             .
@@ -285,14 +286,12 @@ function LoginForm() {
 // Componente de loading para el Suspense
 function LoginLoading() {
   return (
-    <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100">
-      <div className="text-center">
-        <ProgressSpinner
-          style={{ width: "50px", height: "50px" }}
-          strokeWidth="4"
-        />
-        <p className="mt-3 text-gray-600">Cargando...</p>
-      </div>
+    <div className="login-loading">
+      <ProgressSpinner
+        style={{ width: "50px", height: "50px" }}
+        strokeWidth="4"
+      />
+      <p>Cargando...</p>
     </div>
   );
 }

@@ -77,7 +77,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <ToastProvider>
         <NotificationsProvider>
           <ProtectedRoute>
-            <Header />
+            {isAuthenticated && <Header />}
 
             <div className="grid">
               {isAuthenticated && user && (

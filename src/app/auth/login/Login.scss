@@ -1,5 +1,185 @@
+// Variables (mismas que la landing)
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$dark-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+$primary-color: #667eea;
+$secondary-color: #764ba2;
+$white: #ffffff;
+
+// Animaciones
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+// Contenedor principal con fondo oscuro
+.login-container {
+  min-height: 100vh;
+  background: $dark-gradient;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  // Círculos decorativos de fondo
+  &::before {
+    content: "";
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: rgba(102, 126, 234, 0.08);
+    border-radius: 50%;
+    top: -150px;
+    right: -150px;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    background: rgba(118, 75, 162, 0.08);
+    border-radius: 50%;
+    bottom: -100px;
+    left: -100px;
+    animation: float 8s ease-in-out infinite reverse;
+  }
+}
+
+// Card de login con glassmorphism
+.login-card {
+  position: relative;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  animation: fadeInUp 0.6s ease-out forwards;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  .p-card-body {
+    padding: 2rem;
+  }
+}
+
+// Título con gradiente
+.login-title {
+  background: $primary-gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-size: 1.75rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+// Enlace con color primario
+.login-link {
+  color: $primary-color;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $secondary-color;
+    text-decoration: underline;
+  }
+}
+
+// Botón con gradiente
+.login-button {
+  background: $primary-gradient !important;
+  border: none !important;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// SelectButton con estilo mejorado
+.login-method-selector {
+  .p-selectbutton {
+    border-radius: 0.5rem;
+    overflow: hidden;
+
+    .p-button {
+      background: rgba(102, 126, 234, 0.1);
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      color: $primary-color;
+
+      &.p-highlight {
+        background: $primary-gradient;
+        color: $white;
+        border-color: transparent;
+      }
+
+      &:hover:not(.p-highlight) {
+        background: rgba(102, 126, 234, 0.2);
+      }
+    }
+  }
+}
+
+// Input fields mejorados
+.login-input {
+  border-radius: 0.5rem !important;
+  border: 1px solid #e0e0e0;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: $primary-color !important;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
+  }
+}
+
+// Estilos del float-label
 .p-float-label {
   .p-icon-field {
     width: 100%;
+  }
+}
+
+// Loading spinner container
+.login-loading {
+  min-height: 100vh;
+  background: $dark-gradient;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  p {
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 1rem;
   }
 }
