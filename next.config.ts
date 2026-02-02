@@ -6,11 +6,6 @@ const nextConfig: NextConfig = {
     implementation: 'sass-embedded',
   },
 
-  // Ignorar errores de ESLint durante el build (ya validamos en desarrollo)
-  eslint: {
-    ignoreDuringBuilds: true
-  },
-
   // Ignorar errores de TypeScript durante el build (opcional, quitar si quieres validación estricta)
   typescript: {
     ignoreBuildErrors: false,
@@ -19,15 +14,29 @@ const nextConfig: NextConfig = {
   // Optimizaciones de producción
   reactStrictMode: true,
 
-  // Dominios permitidos para imágenes
+  // Dominios permitidos para imágenes (usando remotePatterns en lugar de domains)
   images: {
-    domains: [
-      "www.google.com",
-      "storage.googleapis.com",
-      "www.udg.mx",
-      // Agregar dominios de tu backend si sirves imágenes desde ahí
-      "sigcap-api.onrender.com",
-      "sigcap-api-prod.onrender.com",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'www.google.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.udg.mx',
+      },
+      {
+        protocol: 'https',
+        hostname: 'sigcap-api.onrender.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'sigcap-api-prod.onrender.com',
+      },
     ],
   },
 
