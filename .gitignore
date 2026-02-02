@@ -13,11 +13,21 @@ pnpm-debug.log*
 .out/
 .next/
 dist/
+build/
 
 # Dependency directories
 jspm_packages/
 
-# Environment variables
+# Environment variables - IMPORTANTE: NO subir archivos .env con valores reales
+.env
+.env.local
+.env.development
+.env.testing
+.env.production
+.env.*.local
+
+# MANTENER .env.example (no ignorar)
+!.env.example
 
 # IDEs and editors
 .vscode/
@@ -29,7 +39,7 @@ jspm_packages/
 Thumbs.db
 
 # Package-lock files (si prefieres usar sólo uno)
-package-lock.json
+# package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -41,4 +51,5 @@ coverage/
 *.tgz
 .cache/
 
-.env
+# Vercel
+.vercel
