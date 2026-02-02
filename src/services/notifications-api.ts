@@ -13,12 +13,16 @@ const NOTIFICATIONS_API_URL =
     process.env.NEXT_PUBLIC_NOTIFICATIONS_API ||
     "http://localhost:3001/api/v1/notifications";
 
+// Timeout más largo para cold starts del backend (60 segundos)
+const COLD_START_TIMEOUT = 60000;
+
 // Crear instancia de axios para el servicio de notificaciones
 const notificationsApi = axios.create({
     baseURL: NOTIFICATIONS_API_URL,
     headers: {
         "Content-Type": "application/json",
     },
+    timeout: COLD_START_TIMEOUT, // Timeout generoso para cold starts
 });
 
 // Interceptor para agregar token de autenticación
@@ -31,6 +35,20 @@ notificationsApi.interceptors.request.use(
         return config;
     },
     (error) => Promise.reject(error)
+);
+
+// Interceptor para manejar errores de forma silenciosa
+notificationsApi.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        // Log del error pero no bloquear la UI
+        if (error.code === 'ECONNABORTED') {
+            console.warn('[NotificationsAPI] Timeout - el servicio puede estar iniciando');
+        } else if (!error.response) {
+            console.warn('[NotificationsAPI] Error de red:', error.message);
+        }
+        return Promise.reject(error);
+    }
 );
 
 /**

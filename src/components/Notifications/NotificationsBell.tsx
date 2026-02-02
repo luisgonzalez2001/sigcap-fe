@@ -428,10 +428,13 @@ export function NotificationsBell() {
     unreadCount,
     isConnected,
     isLoading,
+    isReconnecting,
+    error,
     markAsRead,
     markAllAsRead,
     removeNotification,
     fetchNotifications,
+    retryConnection,
   } = useNotifications();
 
   const overlayRef = useRef<OverlayPanel>(null);
@@ -592,14 +595,41 @@ export function NotificationsBell() {
           </>
         )}
 
-        {/* Estado de conexión */}
+        {/* Estado de conexión/reconexión */}
         {!isConnected && (
           <div
-            className="px-3 py-2 text-orange-700 text-sm flex align-items-center gap-2"
-            style={{ backgroundColor: "rgba(250, 204, 21, 0.1)" }}
+            className="px-3 py-2 text-sm flex align-items-center justify-content-between gap-2"
+            style={{ 
+              backgroundColor: isReconnecting ? "rgba(59, 130, 246, 0.1)" : "rgba(250, 204, 21, 0.1)",
+              color: isReconnecting ? "#2563eb" : "#b45309"
+            }}
           >
-            <i className="pi pi-exclamation-triangle" />
-            <span>Sin conexión en tiempo real</span>
+            <div className="flex align-items-center gap-2">
+              {isReconnecting ? (
+                <>
+                  <i className="pi pi-spin pi-spinner" />
+                  <span>{error || "Conectando..."}</span>
+                </>
+              ) : (
+                <>
+                  <i className="pi pi-exclamation-triangle" />
+                  <span>{error || "Sin conexión en tiempo real"}</span>
+                </>
+              )}
+            </div>
+            {!isReconnecting && (
+              <Button
+                icon="pi pi-refresh"
+                rounded
+                text
+                size="small"
+                onClick={retryConnection}
+                className="p-0"
+                style={{ width: "24px", height: "24px" }}
+                tooltip="Reintentar conexión"
+                tooltipOptions={{ position: "left" }}
+              />
+            )}
           </div>
         )}
       </OverlayPanel>

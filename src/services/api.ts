@@ -80,6 +80,13 @@ api.interceptors.response.use(
             _retry?: boolean;
         };
 
+        // Manejar errores de red (sin respuesta del servidor)
+        if (!error.response) {
+            console.warn("[API] Error de red:", error.message);
+            // No hacer nada especial, dejar que el componente maneje el error
+            return Promise.reject(error);
+        }
+
         // Si no hay config o no es 401, rechazar normalmente
         if (!originalRequest || error.response?.status !== 401) {
             return Promise.reject(error);

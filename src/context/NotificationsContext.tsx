@@ -21,6 +21,49 @@ import {
 import type { Notification, NotificationFilters } from "@/types/Notification";
 import { Toast } from "primereact/toast";
 
+// ==================== CONSTANTS ====================
+
+const MAX_RETRIES = 5;
+const RETRY_DELAYS = [5000, 10000, 20000, 30000, 60000]; // Delays progresivos en ms
+
+// ==================== HELPERS ====================
+
+function isTimeoutError(error: unknown): boolean {
+  if (error && typeof error === "object") {
+    const err = error as {
+      message?: string;
+      code?: string;
+      response?: { status?: number };
+    };
+    return (
+      err.message?.includes("timeout") ||
+      err.message?.includes("ECONNABORTED") ||
+      err.message?.includes("Network Error") ||
+      err.code === "ETIMEDOUT" ||
+      err.code === "ECONNABORTED" ||
+      err.response?.status === 408 ||
+      err.response?.status === 504
+    );
+  }
+  return false;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    if (
+      error.message.includes("timeout") ||
+      error.message.includes("ECONNABORTED")
+    ) {
+      return "El servicio está iniciando, esto puede tomar unos segundos...";
+    }
+    if (error.message.includes("Network Error")) {
+      return "Error de red. Verificando conexión...";
+    }
+    return error.message;
+  }
+  return "Ocurrió un error desconocido";
+}
+
 // ==================== INTERFACES ====================
 
 interface NotificationsContextType {
@@ -28,6 +71,7 @@ interface NotificationsContextType {
   unreadCount: number;
   isConnected: boolean;
   isLoading: boolean;
+  isReconnecting: boolean;
   error: string | null;
   fetchNotifications: (filters?: NotificationFilters) => Promise<void>;
   fetchUnreadCount: () => Promise<void>;
@@ -35,6 +79,7 @@ interface NotificationsContextType {
   markAllAsRead: () => Promise<void>;
   removeNotification: (notificationId: string) => Promise<void>;
   clearError: () => void;
+  retryConnection: () => void;
 }
 
 // ==================== CONTEXT ====================
@@ -51,18 +96,21 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const toastRef = useRef<Toast>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
 
-  // ==================== FETCH NOTIFICATIONS ====================
+  // ==================== FETCH NOTIFICATIONS CON RETRY ====================
 
   const fetchNotifications = useCallback(
     async (filters: NotificationFilters = {}) => {
       if (!user?.id) return;
 
       setIsLoading(true);
-      setError(null);
+      // No limpiamos el error aquí para mantenerlo visible durante reintentos
 
       try {
         const response = await getNotifications(user.id, {
@@ -70,14 +118,24 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
           ...filters,
         });
         setNotifications(response.data);
+        setError(null); // Solo limpiamos el error si la petición fue exitosa
+        retryCountRef.current = 0; // Resetear contador de reintentos
       } catch (err) {
         console.error("Error al obtener notificaciones:", err);
-        setError("Error al cargar las notificaciones");
+        // Solo mostrar error si no estamos reconectando
+        if (!isReconnecting) {
+          const errorMessage = getErrorMessage(err);
+          if (isTimeoutError(err)) {
+            setError("Conectando al servicio de notificaciones...");
+          } else {
+            setError(errorMessage);
+          }
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [user?.id],
+    [user?.id, isReconnecting],
   );
 
   // ==================== FETCH UNREAD COUNT ====================
@@ -90,6 +148,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       setUnreadCount(count);
     } catch (err) {
       console.error("Error al obtener contador de no leídas:", err);
+      // No mostrar error para esto, es menos crítico
     }
   }, [user?.id]);
 
@@ -249,10 +308,23 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       },
     );
 
-    // Escuchar errores
+    // Escuchar errores - manejar de forma silenciosa durante reconexión
     const unsubscribeError = notificationsSocket.onError((errorMessage) => {
-      console.error("Error de WebSocket:", errorMessage);
-      setError(errorMessage);
+      console.warn("[NotificationsContext] Error de WebSocket:", errorMessage);
+
+      // Si el error es de conexión/timeout, mostrar mensaje amigable
+      if (
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("conexión") ||
+        errorMessage.includes("connection") ||
+        errorMessage.includes("ECONNREFUSED")
+      ) {
+        // No mostrar error agresivo, solo un mensaje informativo
+        setError("Conectando al servicio de notificaciones...");
+      } else {
+        // Para otros errores, mostrar el mensaje
+        setError(errorMessage);
+      }
     });
 
     // Cleanup
@@ -271,6 +343,48 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     showNotificationToast,
   ]);
 
+  // ==================== RETRY CONNECTION ====================
+
+  const retryConnection = useCallback(() => {
+    if (!user?.id) return;
+
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+    }
+
+    setIsReconnecting(true);
+    setError("Reconectando al servicio de notificaciones...");
+
+    // Incrementar contador de reintentos
+    const currentRetry = retryCountRef.current;
+    const delay = RETRY_DELAYS[Math.min(currentRetry, RETRY_DELAYS.length - 1)];
+    retryCountRef.current++;
+
+    if (currentRetry >= MAX_RETRIES) {
+      setError(
+        "No se pudo conectar al servicio de notificaciones. Recarga la página para intentar de nuevo.",
+      );
+      setIsReconnecting(false);
+      return;
+    }
+
+    // Usar un nuevo timeout para la reconexión
+    retryTimeoutRef.current = setTimeout(() => {
+      notificationsSocket.connect(user.id);
+      fetchNotifications();
+      fetchUnreadCount();
+    }, delay);
+  }, [user?.id, fetchNotifications, fetchUnreadCount]);
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // ==================== VALUE ====================
 
   const value: NotificationsContextType = {
@@ -278,6 +392,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     unreadCount,
     isConnected,
     isLoading,
+    isReconnecting,
     error,
     fetchNotifications,
     fetchUnreadCount,
@@ -285,6 +400,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     markAllAsRead,
     removeNotification,
     clearError,
+    retryConnection,
   };
 
   return (

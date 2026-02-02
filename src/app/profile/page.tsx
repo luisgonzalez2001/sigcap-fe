@@ -17,6 +17,8 @@ import { Tag } from "primereact/tag";
 import { Password } from "primereact/password";
 import { Divider } from "primereact/divider";
 import { Message } from "primereact/message";
+import { InputNumber } from "primereact/inputnumber";
+import { InputTextarea } from "primereact/inputtextarea";
 
 const ProfilePage = () => {
   const { user, socioExtra, setUserUser } = useUser();
@@ -28,6 +30,7 @@ const ProfilePage = () => {
   // Dialog states
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [passwordDialogVisible, setPasswordDialogVisible] = useState(false);
+  const [solicitudDialogVisible, setSolicitudDialogVisible] = useState(false);
 
   // Form states
   const [editForm, setEditForm] = useState({
@@ -41,6 +44,14 @@ const ProfilePage = () => {
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Estado para solicitud de asociación
+  const [solicitudForm, setSolicitudForm] = useState({
+    montoSemanal: 100 as number | null,
+    mensaje: "",
+  });
+  const [solicitudLoading, setSolicitudLoading] = useState(false);
+  const [solicitudEnviada, setSolicitudEnviada] = useState(false);
 
   // Cargar datos del partner si es socio
   useEffect(() => {
@@ -242,6 +253,77 @@ const ProfilePage = () => {
     }
   };
 
+  // Abrir dialog de solicitud de asociación
+  const openSolicitudDialog = () => {
+    setSolicitudForm({
+      montoSemanal: 100,
+      mensaje: "",
+    });
+    setSolicitudDialogVisible(true);
+  };
+
+  // Enviar solicitud de asociación
+  const handleSolicitudAsociacion = async () => {
+    if (!solicitudForm.montoSemanal || solicitudForm.montoSemanal < 50) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "El monto semanal debe ser al menos $50",
+        life: 3000,
+      });
+      return;
+    }
+
+    setSolicitudLoading(true);
+
+    try {
+      await api.post("/solicitudes-asociacion", {
+        monto_semanal: solicitudForm.montoSemanal,
+        mensaje: solicitudForm.mensaje || undefined,
+      });
+
+      toast.current?.show({
+        severity: "success",
+        summary: "Solicitud Enviada",
+        detail:
+          "Los administradores han sido notificados y revisarán tu solicitud pronto.",
+        life: 5000,
+      });
+      setSolicitudEnviada(true);
+      setSolicitudDialogVisible(false);
+    } catch (error) {
+      const err = error as AxiosError<{ message?: string }>;
+      if (err.response?.status === 400) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Ya eres socio",
+          detail: "Tu cuenta ya está asociada a un número de socio.",
+          life: 3000,
+        });
+      } else if (err.response?.status === 429) {
+        toast.current?.show({
+          severity: "warn",
+          summary: "Solicitud pendiente",
+          detail:
+            err.response.data?.message ||
+            "Ya tienes una solicitud reciente. Podrás solicitar nuevamente en unos días.",
+          life: 5000,
+        });
+      } else {
+        toast.current?.show({
+          severity: "error",
+          summary: "Error",
+          detail:
+            err.response?.data?.message ||
+            "Error al enviar la solicitud. Intenta de nuevo.",
+          life: 3000,
+        });
+      }
+    } finally {
+      setSolicitudLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex justify-content-center align-items-center min-h-screen">
@@ -407,25 +489,42 @@ const ProfilePage = () => {
               // Card informativa - No asociado a socio
               <Card className="shadow-sm">
                 <div className="text-center py-4">
-                  <i
-                    className="pi pi-user-minus text-5xl text-gray-300 mb-4"
-                    style={{ display: "block" }}
-                  ></i>
-                  <h3 className="text-xl font-semibold m-0 mb-2 text-gray-700">
-                    Sin asociación de socio
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Tu cuenta de usuario aún no está asociada a un número de
-                    socio en la caja de ahorro.
-                  </p>
-                  <Button
-                    label="Solicitar asociación"
-                    icon="pi pi-send"
-                    outlined
-                    disabled
-                    tooltip="Próximamente"
-                    tooltipOptions={{ position: "bottom" }}
-                  />
+                  {solicitudEnviada ? (
+                    <>
+                      <i
+                        className="pi pi-check-circle text-5xl mb-4"
+                        style={{ display: "block", color: "#22c55e" }}
+                      ></i>
+                      <h3 className="text-xl font-semibold m-0 mb-2 text-green-700">
+                        ¡Solicitud Enviada!
+                      </h3>
+                      <p className="text-gray-600 mb-4">
+                        Los administradores han sido notificados y revisarán tu
+                        solicitud pronto. Te notificaremos cuando haya una
+                        respuesta.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <i
+                        className="pi pi-user-minus text-5xl text-gray-300 mb-4"
+                        style={{ display: "block" }}
+                      ></i>
+                      <h3 className="text-xl font-semibold m-0 mb-2 text-gray-700">
+                        Sin asociación de socio
+                      </h3>
+                      <p className="text-gray-500 mb-4">
+                        Tu cuenta de usuario aún no está asociada a un número de
+                        socio en la caja de ahorro.
+                      </p>
+                      <Button
+                        label="Solicitar asociación"
+                        icon="pi pi-send"
+                        outlined
+                        onClick={openSolicitudDialog}
+                      />
+                    </>
+                  )}
                 </div>
               </Card>
             )
@@ -627,6 +726,87 @@ const ProfilePage = () => {
               className="w-full"
             />
           )}
+        </div>
+      </Dialog>
+
+      {/* Dialog de solicitud de asociación */}
+      <Dialog
+        visible={solicitudDialogVisible}
+        onHide={() => setSolicitudDialogVisible(false)}
+        header="Solicitar Asociación"
+        style={{ width: "90vw", maxWidth: "450px" }}
+        modal
+        className="p-fluid"
+        footer={
+          <div className="flex justify-content-end gap-2">
+            <Button
+              label="Cancelar"
+              icon="pi pi-times"
+              outlined
+              onClick={() => setSolicitudDialogVisible(false)}
+              disabled={solicitudLoading}
+            />
+            <Button
+              label="Enviar solicitud"
+              icon="pi pi-paper-plane"
+              onClick={handleSolicitudAsociacion}
+              loading={solicitudLoading}
+              disabled={solicitudEnviada}
+            />
+          </div>
+        }
+      >
+        <div className="flex flex-column gap-4 pt-3">
+          <div className="flex flex-column gap-2">
+            <label htmlFor="monto-semanal" className="font-semibold">
+              Monto Semanal <span className="text-red-500">*</span>
+            </label>
+            <InputNumber
+              id="monto-semanal"
+              value={solicitudForm.montoSemanal}
+              onValueChange={(e) =>
+                setSolicitudForm({
+                  ...solicitudForm,
+                  montoSemanal: e.value ?? null,
+                })
+              }
+              mode="currency"
+              currency="MXN"
+              locale="es-MX"
+              placeholder="Ej: 100"
+              min={50}
+              max={10000}
+              step={50}
+              className="w-full"
+            />
+            <small className="text-gray-600">Mínimo: $50.00</small>
+          </div>
+
+          <div className="flex flex-column gap-2">
+            <label htmlFor="mensaje" className="font-semibold">
+              Mensaje (Opcional)
+            </label>
+            <InputTextarea
+              id="mensaje"
+              value={solicitudForm.mensaje}
+              onChange={(e) =>
+                setSolicitudForm({ ...solicitudForm, mensaje: e.target.value })
+              }
+              placeholder="Escribe un mensaje para los administradores..."
+              maxLength={500}
+              rows={4}
+              className="w-full"
+            />
+            <small className="text-gray-600">
+              {solicitudForm.mensaje.length}/500 caracteres
+            </small>
+          </div>
+
+          <Message
+            severity="info"
+            text="Al enviar esta solicitud, los administradores serán notificados y revisarán tu petición."
+            className="w-full"
+          />
         </div>
       </Dialog>
     </div>

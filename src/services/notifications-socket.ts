@@ -11,6 +11,11 @@ import type {
 const NOTIFICATIONS_URL =
     process.env.NEXT_PUBLIC_NOTIFICATIONS_URL || "http://localhost:3001";
 
+// Timeouts más largos para cold starts
+const CONNECTION_TIMEOUT = 60000; // 60 segundos para conexión inicial
+const RECONNECTION_DELAY = 2000;
+const MAX_RECONNECTION_DELAY = 30000;
+
 type NotificationCallback = (notification: Notification) => void;
 type UnreadCountCallback = () => void;
 type ConnectionCallback = (isConnected: boolean) => void;
@@ -49,8 +54,9 @@ class NotificationsSocket {
                 autoConnect: true,
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
+                reconnectionDelay: RECONNECTION_DELAY,
+                reconnectionDelayMax: MAX_RECONNECTION_DELAY,
+                timeout: CONNECTION_TIMEOUT,
             });
 
             this.setupEventListeners();
