@@ -56,7 +56,7 @@ const Header = () => {
                 label: "Solicitudes",
                 icon: "pi pi-user-plus",
                 command: () => {
-                  router.push("/solicitudes-asociacion");
+                  router.push("/solicitudes");
                   setSidebarVisible(false);
                 },
               },

@@ -14,6 +14,9 @@ export type NotificationType =
     | "socio_aprobado"
     | "socio_rechazado"
     | "solicitud_asociacion"
+    | "solicitud_prestamo"
+    | "solicitud_prestamo_aprobada"
+    | "solicitud_prestamo_rechazada"
     | "sistema"
     | "general";
 
@@ -114,6 +117,42 @@ export interface SolicitudAsociacionData {
 }
 
 /**
+ * Datos adicionales para notificación de solicitud de préstamo (admin recibe)
+ */
+export interface SolicitudPrestamoData {
+    solicitud_id: string;
+    socio_id: string;
+    nombre_socio: string;
+    n_socio: number;
+    monto_solicitado: number;
+    plazo_meses: number;
+    score: number;
+    nivel_riesgo: string;
+    fecha_solicitud: string;
+}
+
+/**
+ * Datos adicionales para notificación de solicitud de préstamo aprobada (socio recibe)
+ */
+export interface SolicitudPrestamoAprobadaData {
+    solicitud_id: string;
+    prestamo_id: string;
+    monto_aprobado: number;
+    plazo_meses: number;
+    tasa_interes: number;
+    monto_cuota: number;
+}
+
+/**
+ * Datos adicionales para notificación de solicitud de préstamo rechazada (socio recibe)
+ */
+export interface SolicitudPrestamoRechazadaData {
+    solicitud_id: string;
+    monto_solicitado: number;
+    motivo_rechazo: string;
+}
+
+/**
  * Datos adicionales para notificación de sistema (préstamo pagado)
  */
 export interface SistemaPrestamoPagadoData {
@@ -142,6 +181,9 @@ export type NotificationData =
     | SocioAprobadoData
     | SocioRechazadoData
     | SolicitudAsociacionData
+    | SolicitudPrestamoData
+    | SolicitudPrestamoAprobadaData
+    | SolicitudPrestamoRechazadaData
     | SistemaPrestamoPagadoData
     | SistemaDatosActualizadosData
     | Record<string, unknown>;

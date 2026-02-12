@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { useUser } from "@/context/UserContext";
 import { SolicitudAsociacionWrapper } from "@/components/SolicitudAsociacion/SolicitudAsociacionWrapper";
+import CreditScoringCard from "@/components/Scoring/CreditScoringCard";
 import type {
   DashboardAdmin,
   DashboardSocio,
@@ -893,6 +894,13 @@ const Dashboard: React.FC = () => {
             </div>
           </Card>
         </div>
+
+        {/* Credit Scoring Card */}
+        {socioId && (
+          <div className="flex flex-column lg:flex-row gap-3 mb-6">
+            <CreditScoringCard socioId={socioId} />
+          </div>
+        )}
 
         {/* Card próximo pago */}
         {resumen.proximoPago && (

@@ -44,7 +44,7 @@ const SideBar: React.FC = () => {
             icon: "pi pi-user-plus",
             command: () => {
               setSelectedView("solicitudes");
-              router.push("/solicitudes-asociacion");
+              router.push("/solicitudes");
             },
           },
           {
@@ -66,7 +66,10 @@ const SideBar: React.FC = () => {
           {
             label: "Scoring",
             icon: "pi pi-chart-line",
-            command: () => setSelectedView("scoring"),
+            command: () => {
+              setSelectedView("scoring");
+              router.push("/scoring");
+            },
           },
           {
             label: "Reportes",

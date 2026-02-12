@@ -21,6 +21,15 @@ import { useUser } from "@/context/UserContext";
 import { SolicitudAsociacionWrapper } from "@/components/SolicitudAsociacion/SolicitudAsociacionWrapper";
 import PrestamoForm from "@/components/PrestamoForm/PrestamoForm";
 import PrestamoDetalleDialog from "@/components/PrestamoForm/PrestamoDetalleDialog";
+import SolicitudPrestamoDialog from "@/components/SolicitudPrestamo/SolicitudPrestamoDialog";
+import {
+  getMisSolicitudesPrestamo,
+  verificarElegibilidad,
+} from "@/services/scoring-api";
+import type {
+  SolicitudPrestamo,
+  ElegibilidadPrestamoResponse,
+} from "@/types/Scoring";
 
 const PrestamosPage = () => {
   const toast = useRef<Toast>(null);
@@ -43,6 +52,13 @@ const PrestamosPage = () => {
   const [selectedPrestamoId, setSelectedPrestamoId] = useState<string | null>(
     null,
   );
+  const [solicitudDialogVisible, setSolicitudDialogVisible] = useState(false);
+
+  // Socio: loan request state
+  const [misSolicitudes, setMisSolicitudes] = useState<SolicitudPrestamo[]>([]);
+  const [elegibilidad, setElegibilidad] =
+    useState<ElegibilidadPrestamoResponse | null>(null);
+  const [loadingElegibilidad, setLoadingElegibilidad] = useState(false);
 
   const estatusOptions = [
     { label: "Todos", value: null },
@@ -107,6 +123,48 @@ const PrestamosPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estatusFilter, moraFilter, user, socioExtra?.id, isAdmin]);
 
+  // Socio: load elegibility and solicitudes
+  const loadSocioLoanInfo = async () => {
+    if (isAdmin || !socioExtra?.id) return;
+    setLoadingElegibilidad(true);
+    try {
+      // Primero obtener solicitudes para saber si hay alguna pendiente
+      let solicitudes: SolicitudPrestamo[] = [];
+      try {
+        solicitudes = await getMisSolicitudesPrestamo(socioExtra.id);
+        setMisSolicitudes(solicitudes);
+      } catch {
+        // Silently fail - endpoint may not exist yet
+      }
+
+      // Verificar si el socio tiene préstamos activos
+      const tienePrestamosActivos = prestamos.some(
+        (p) => p.estatus === "activo",
+      );
+      const tieneSolicitudPendiente = solicitudes.some(
+        (s) => s.estado === "pendiente",
+      );
+
+      // Construir elegibilidad a partir del scoring
+      const elegData = await verificarElegibilidad(
+        socioExtra.id,
+        tienePrestamosActivos,
+        tieneSolicitudPendiente,
+      );
+      setElegibilidad(elegData);
+    } catch {
+      // Silently fail - scoring may not be available
+    } finally {
+      setLoadingElegibilidad(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user || isAdmin || !socioExtra?.id) return;
+    loadSocioLoanInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, socioExtra?.id, isAdmin]);
+
   // Filtrar préstamos por búsqueda
   const filteredPrestamos = prestamos.filter((prestamo) => {
     if (!searchValue.trim()) return true;
@@ -147,6 +205,7 @@ const PrestamosPage = () => {
   // Handler para éxito en operaciones
   const handleSuccess = () => {
     loadData();
+    if (!isAdmin) loadSocioLoanInfo();
   };
 
   // Badge de estatus
@@ -352,6 +411,150 @@ const PrestamosPage = () => {
             : "Consulta el estado de tus préstamos"}
         </p>
       </div>
+
+      {/* Socio: Loan Request Card */}
+      {!isAdmin && socioExtra?.id && !loadingElegibilidad && (
+        <>
+          {/* Card para solicitar préstamo - si es elegible */}
+          {elegibilidad?.elegible && (
+            <Card
+              className="shadow-sm mb-4"
+              style={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                border: "none",
+              }}
+            >
+              <div className="flex flex-column md:flex-row align-items-center justify-content-between gap-3">
+                <div className="flex align-items-center gap-3">
+                  <div
+                    className="flex align-items-center justify-content-center"
+                    style={{
+                      width: "3.5rem",
+                      height: "3.5rem",
+                      borderRadius: "12px",
+                      backgroundColor: "rgba(255,255,255,0.2)",
+                    }}
+                  >
+                    <i className="pi pi-money-bill text-white text-3xl" />
+                  </div>
+                  <div>
+                    <h3 className="m-0 text-white font-bold text-lg">
+                      ¡Puedes solicitar un préstamo!
+                    </h3>
+                    {elegibilidad.scoring && (
+                      <p
+                        className="m-0 mt-1 text-white"
+                        style={{ opacity: 0.9, fontSize: "0.875rem" }}
+                      >
+                        Monto máximo recomendado:{" "}
+                        <strong>
+                          {formatCurrency(
+                            elegibilidad.scoring.monto_maximo_recomendado,
+                          )}
+                        </strong>{" "}
+                        · Score: <strong>{elegibilidad.scoring.score}</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  label="Solicitar Préstamo"
+                  icon="pi pi-send"
+                  onClick={() => setSolicitudDialogVisible(true)}
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.95)",
+                    color: "#764ba2",
+                    border: "none",
+                    fontWeight: "bold",
+                    padding: "0.75rem 1.5rem",
+                  }}
+                />
+              </div>
+            </Card>
+          )}
+
+          {/* Solicitudes pendientes del socio */}
+          {misSolicitudes.filter((s) => s.estado === "pendiente").length >
+            0 && (
+            <Card
+              className="shadow-sm mb-4"
+              style={{
+                backgroundColor: "#FFFBEB",
+                border: "1px solid #FEF3C7",
+              }}
+            >
+              <div className="flex align-items-center gap-3">
+                <i className="pi pi-clock text-yellow-600 text-2xl" />
+                <div>
+                  <p className="m-0 font-semibold text-900">
+                    Solicitud en revisión
+                  </p>
+                  <p className="m-0 text-sm text-600 mt-1">
+                    Tienes una solicitud de préstamo pendiente por{" "}
+                    <strong>
+                      {formatCurrency(
+                        Number(
+                          misSolicitudes.find((s) => s.estado === "pendiente")!
+                            .monto_solicitado,
+                        ),
+                      )}
+                    </strong>
+                    . Te notificaremos cuando sea resuelta.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Solicitudes rechazadas recientes */}
+          {misSolicitudes.filter((s) => s.estado === "rechazada").length >
+            0 && (
+            <Card
+              className="shadow-sm mb-4"
+              style={{
+                backgroundColor: "#FEF2F2",
+                border: "1px solid #FECACA",
+              }}
+            >
+              <div className="flex align-items-center gap-3">
+                <i className="pi pi-times-circle text-red-600 text-xl" />
+                <div>
+                  <p className="m-0 font-semibold text-900 text-sm">
+                    Solicitud rechazada
+                  </p>
+                  <p className="m-0 text-sm text-600 mt-1">
+                    Tu última solicitud fue rechazada
+                    {misSolicitudes.find((s) => s.estado === "rechazada")
+                      ?.motivo_rechazo &&
+                      `: ${misSolicitudes.find((s) => s.estado === "rechazada")!.motivo_rechazo}`}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Not elegible info */}
+          {elegibilidad &&
+            !elegibilidad.elegible &&
+            elegibilidad.tiene_prestamo_activo && (
+              <Card
+                className="shadow-sm mb-4"
+                style={{
+                  backgroundColor: "#EFF6FF",
+                  border: "1px solid #BFDBFE",
+                }}
+              >
+                <div className="flex align-items-center gap-3">
+                  <i className="pi pi-info-circle text-blue-600 text-xl" />
+                  <p className="m-0 text-sm text-600">
+                    Tienes un préstamo activo. Podrás solicitar un nuevo
+                    préstamo cuando lo liquides.
+                  </p>
+                </div>
+              </Card>
+            )}
+        </>
+      )}
 
       {/* Estadísticas (solo admin) */}
       {isAdmin && resumen && (
@@ -669,6 +872,14 @@ const PrestamosPage = () => {
                 style={{ fontSize: "2.5rem" }}
               ></i>
               <p>No se encontraron préstamos.</p>
+              {!isAdmin && elegibilidad?.elegible && (
+                <Button
+                  label="Solicitar Préstamo"
+                  icon="pi pi-send"
+                  className="mt-2"
+                  onClick={() => setSolicitudDialogVisible(true)}
+                />
+              )}
             </div>
           ) : (
             <div className="flex flex-column gap-3">
@@ -797,6 +1008,16 @@ const PrestamosPage = () => {
         onSuccess={handleSuccess}
         prestamoId={selectedPrestamoId}
       />
+
+      {/* Dialog para solicitar préstamo (socio) */}
+      {!isAdmin && socioExtra?.id && (
+        <SolicitudPrestamoDialog
+          visible={solicitudDialogVisible}
+          onHide={() => setSolicitudDialogVisible(false)}
+          onSuccess={handleSuccess}
+          socioId={socioExtra.id}
+        />
+      )}
     </div>
   );
 };
