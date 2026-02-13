@@ -86,6 +86,10 @@ body {
   color: #0009;
   transform: rotateY(180deg);
 }
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  border-color: transparent;
+}
 /* 
 
 

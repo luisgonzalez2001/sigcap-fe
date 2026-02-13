@@ -22,14 +22,8 @@ import { SolicitudAsociacionWrapper } from "@/components/SolicitudAsociacion/Sol
 import PrestamoForm from "@/components/PrestamoForm/PrestamoForm";
 import PrestamoDetalleDialog from "@/components/PrestamoForm/PrestamoDetalleDialog";
 import SolicitudPrestamoDialog from "@/components/SolicitudPrestamo/SolicitudPrestamoDialog";
-import {
-  getMisSolicitudesPrestamo,
-  verificarElegibilidad,
-} from "@/services/scoring-api";
-import type {
-  SolicitudPrestamo,
-  ElegibilidadPrestamoResponse,
-} from "@/types/Scoring";
+import { verificarElegibilidad } from "@/services/scoring-api";
+import type { ElegibilidadPrestamoResponse } from "@/types/Scoring";
 
 const PrestamosPage = () => {
   const toast = useRef<Toast>(null);
@@ -55,7 +49,6 @@ const PrestamosPage = () => {
   const [solicitudDialogVisible, setSolicitudDialogVisible] = useState(false);
 
   // Socio: loan request state
-  const [misSolicitudes, setMisSolicitudes] = useState<SolicitudPrestamo[]>([]);
   const [elegibilidad, setElegibilidad] =
     useState<ElegibilidadPrestamoResponse | null>(null);
   const [loadingElegibilidad, setLoadingElegibilidad] = useState(false);
@@ -128,28 +121,27 @@ const PrestamosPage = () => {
     if (isAdmin || !socioExtra?.id) return;
     setLoadingElegibilidad(true);
     try {
-      // Primero obtener solicitudes para saber si hay alguna pendiente
-      let solicitudes: SolicitudPrestamo[] = [];
-      try {
-        solicitudes = await getMisSolicitudesPrestamo(socioExtra.id);
-        setMisSolicitudes(solicitudes);
-      } catch {
-        // Silently fail - endpoint may not exist yet
+      // Obtener préstamos del socio directamente para evitar race condition con el state
+      let prestamosActuales: Prestamo[] = prestamos;
+      if (prestamosActuales.length === 0) {
+        try {
+          const res = await api.get<Prestamo[]>(
+            `/prestamos/socio/${socioExtra.id}`,
+          );
+          prestamosActuales = res.data;
+        } catch {
+          // Use whatever is in state
+        }
       }
 
-      // Verificar si el socio tiene préstamos activos
-      const tienePrestamosActivos = prestamos.some(
+      const tienePrestamosActivos = prestamosActuales.some(
         (p) => p.estatus === "activo",
-      );
-      const tieneSolicitudPendiente = solicitudes.some(
-        (s) => s.estado === "pendiente",
       );
 
       // Construir elegibilidad a partir del scoring
       const elegData = await verificarElegibilidad(
         socioExtra.id,
         tienePrestamosActivos,
-        tieneSolicitudPendiente,
       );
       setElegibilidad(elegData);
     } catch {
@@ -161,9 +153,11 @@ const PrestamosPage = () => {
 
   useEffect(() => {
     if (!user || isAdmin || !socioExtra?.id) return;
+    // Esperar a que los préstamos terminen de cargar para tener data fresca
+    if (loading) return;
     loadSocioLoanInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, socioExtra?.id, isAdmin]);
+  }, [user, socioExtra?.id, isAdmin, loading]);
 
   // Filtrar préstamos por búsqueda
   const filteredPrestamos = prestamos.filter((prestamo) => {
@@ -183,6 +177,7 @@ const PrestamosPage = () => {
     return value.toLocaleString("es-MX", {
       style: "currency",
       currency: "MXN",
+      maximumFractionDigits: 2,
     });
   };
 
@@ -351,10 +346,23 @@ const PrestamosPage = () => {
 
   const saldoBodyTemplate = (rowData: Prestamo) => {
     const saldo =
-      rowData.monto_total - rowData.monto_abonado + rowData.intereses_mora;
+      rowData.monto_total -
+      rowData.monto_abonado +
+      Number(rowData.intereses_mora);
     return (
-      <span style={{ fontWeight: "600", color: "#dc2626" }}>
-        {formatCurrency(saldo)}
+      //Mostrar saldo rojo si ya paso la fecha de pago
+      <span
+        style={{
+          fontWeight: "600",
+          color:
+            rowData.estatus === "activo" &&
+            rowData?.fecha_proximo_pago &&
+            new Date(rowData.fecha_proximo_pago).getTime() > Date.now()
+              ? "#16a34a"
+              : "#dc2626",
+        }}
+      >
+        {saldo > 0 && "Saldo: " + formatCurrency(saldo)}
       </span>
     );
   };
@@ -424,111 +432,113 @@ const PrestamosPage = () => {
                 border: "none",
               }}
             >
-              <div className="flex flex-column md:flex-row align-items-center justify-content-between gap-3">
-                <div className="flex align-items-center gap-3">
-                  <div
-                    className="flex align-items-center justify-content-center"
+              <div className="flex flex-column gap-3">
+                <div className="flex flex-column md:flex-row align-items-center justify-content-between gap-3">
+                  <div className="flex align-items-center gap-3">
+                    <div
+                      className="flex align-items-center justify-content-center"
+                      style={{
+                        width: "3.5rem",
+                        height: "3.5rem",
+                        borderRadius: "12px",
+                        backgroundColor: "rgba(255,255,255,0.2)",
+                      }}
+                    >
+                      <i className="pi pi-money-bill text-white text-3xl" />
+                    </div>
+                    <div>
+                      <h3 className="m-0 text-white font-bold text-lg">
+                        ¡Puedes solicitar un préstamo!
+                      </h3>
+                      {elegibilidad.scoring && (
+                        <p
+                          className="m-0 mt-1 text-white"
+                          style={{ opacity: 0.9, fontSize: "0.875rem" }}
+                        >
+                          Monto máximo recomendado:{" "}
+                          <strong>
+                            {formatCurrency(
+                              elegibilidad.scoring.monto_maximo_recomendado,
+                            )}
+                          </strong>{" "}
+                          · Score: <strong>{elegibilidad.scoring.score}</strong>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    label="Solicitar Préstamo"
+                    icon="pi pi-send"
+                    onClick={() => setSolicitudDialogVisible(true)}
                     style={{
-                      width: "3.5rem",
-                      height: "3.5rem",
-                      borderRadius: "12px",
-                      backgroundColor: "rgba(255,255,255,0.2)",
+                      backgroundColor: "rgba(255,255,255,0.95)",
+                      color: "#764ba2",
+                      border: "none",
+                      fontWeight: "bold",
+                      padding: "0.75rem 1.5rem",
+                    }}
+                  />
+                </div>
+
+                {/* Info de tasa y cálculo estimado */}
+                {elegibilidad.scoring && (
+                  <div
+                    className="p-3 border-round"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.15)",
+                      borderRadius: "8px",
                     }}
                   >
-                    <i className="pi pi-money-bill text-white text-3xl" />
+                    <div className="flex flex-column md:flex-row gap-3 md:gap-5">
+                      <div className="flex align-items-center gap-2">
+                        <i
+                          className="pi pi-percentage text-white"
+                          style={{ opacity: 0.8 }}
+                        />
+                        <span
+                          className="text-white text-sm"
+                          style={{ opacity: 0.9 }}
+                        >
+                          Tasa de interés:{" "}
+                          <strong className="text-white">
+                            5% mensual (simple)
+                          </strong>
+                        </span>
+                      </div>
+                      <div className="flex align-items-center gap-2">
+                        <i
+                          className="pi pi-calculator text-white"
+                          style={{ opacity: 0.8 }}
+                        />
+                        <span
+                          className="text-white text-sm"
+                          style={{ opacity: 0.9 }}
+                        >
+                          Ejemplo:{" "}
+                          <strong className="text-white">
+                            {formatCurrency(
+                              elegibilidad.scoring.monto_optimo_sugerido ||
+                                elegibilidad.scoring.monto_maximo_recomendado,
+                            )}
+                          </strong>{" "}
+                          a 12 meses ={" "}
+                          <strong className="text-white">
+                            {formatCurrency(
+                              (elegibilidad.scoring.monto_optimo_sugerido ||
+                                elegibilidad.scoring.monto_maximo_recomendado) +
+                                (elegibilidad.scoring.monto_optimo_sugerido ||
+                                  elegibilidad.scoring
+                                    .monto_maximo_recomendado) *
+                                  0.05 *
+                                  12,
+                            )}
+                          </strong>{" "}
+                          total
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="m-0 text-white font-bold text-lg">
-                      ¡Puedes solicitar un préstamo!
-                    </h3>
-                    {elegibilidad.scoring && (
-                      <p
-                        className="m-0 mt-1 text-white"
-                        style={{ opacity: 0.9, fontSize: "0.875rem" }}
-                      >
-                        Monto máximo recomendado:{" "}
-                        <strong>
-                          {formatCurrency(
-                            elegibilidad.scoring.monto_maximo_recomendado,
-                          )}
-                        </strong>{" "}
-                        · Score: <strong>{elegibilidad.scoring.score}</strong>
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  label="Solicitar Préstamo"
-                  icon="pi pi-send"
-                  onClick={() => setSolicitudDialogVisible(true)}
-                  style={{
-                    backgroundColor: "rgba(255,255,255,0.95)",
-                    color: "#764ba2",
-                    border: "none",
-                    fontWeight: "bold",
-                    padding: "0.75rem 1.5rem",
-                  }}
-                />
-              </div>
-            </Card>
-          )}
-
-          {/* Solicitudes pendientes del socio */}
-          {misSolicitudes.filter((s) => s.estado === "pendiente").length >
-            0 && (
-            <Card
-              className="shadow-sm mb-4"
-              style={{
-                backgroundColor: "#FFFBEB",
-                border: "1px solid #FEF3C7",
-              }}
-            >
-              <div className="flex align-items-center gap-3">
-                <i className="pi pi-clock text-yellow-600 text-2xl" />
-                <div>
-                  <p className="m-0 font-semibold text-900">
-                    Solicitud en revisión
-                  </p>
-                  <p className="m-0 text-sm text-600 mt-1">
-                    Tienes una solicitud de préstamo pendiente por{" "}
-                    <strong>
-                      {formatCurrency(
-                        Number(
-                          misSolicitudes.find((s) => s.estado === "pendiente")!
-                            .monto_solicitado,
-                        ),
-                      )}
-                    </strong>
-                    . Te notificaremos cuando sea resuelta.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Solicitudes rechazadas recientes */}
-          {misSolicitudes.filter((s) => s.estado === "rechazada").length >
-            0 && (
-            <Card
-              className="shadow-sm mb-4"
-              style={{
-                backgroundColor: "#FEF2F2",
-                border: "1px solid #FECACA",
-              }}
-            >
-              <div className="flex align-items-center gap-3">
-                <i className="pi pi-times-circle text-red-600 text-xl" />
-                <div>
-                  <p className="m-0 font-semibold text-900 text-sm">
-                    Solicitud rechazada
-                  </p>
-                  <p className="m-0 text-sm text-600 mt-1">
-                    Tu última solicitud fue rechazada
-                    {misSolicitudes.find((s) => s.estado === "rechazada")
-                      ?.motivo_rechazo &&
-                      `: ${misSolicitudes.find((s) => s.estado === "rechazada")!.motivo_rechazo}`}
-                  </p>
-                </div>
+                )}
               </div>
             </Card>
           )}
@@ -949,11 +959,17 @@ const PrestamosPage = () => {
                       <span
                         style={{
                           fontWeight: "600",
-                          color: "#dc2626",
+                          color:
+                            prestamo.estatus === "activo" &&
+                            prestamo.fecha_proximo_pago &&
+                            new Date(prestamo.fecha_proximo_pago).getTime() >
+                              Date.now()
+                              ? "#16a34a"
+                              : "#dc2626",
                           fontSize: "0.875rem",
                         }}
                       >
-                        Saldo: {formatCurrency(saldo)}
+                        {saldo > 0 && "Saldo: " + formatCurrency(saldo)}
                       </span>
                     </div>
 

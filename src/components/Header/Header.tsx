@@ -84,14 +84,6 @@ const Header = () => {
                   setSidebarVisible(false);
                 },
               },
-              {
-                label: "Reportes",
-                icon: "pi pi-file",
-                command: () => {
-                  router.push("/reportes");
-                  setSidebarVisible(false);
-                },
-              },
             ]
           : [
               // Links para socios: solo préstamos (sus propios)

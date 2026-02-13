@@ -71,11 +71,6 @@ const SideBar: React.FC = () => {
               router.push("/scoring");
             },
           },
-          {
-            label: "Reportes",
-            icon: "pi pi-file",
-            command: () => setSelectedView("reportes"),
-          },
         ]
       : [
           // Links para socios: solo préstamos (sus propios)

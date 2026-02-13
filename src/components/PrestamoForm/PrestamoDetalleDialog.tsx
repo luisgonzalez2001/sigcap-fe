@@ -398,7 +398,9 @@ const PrestamoDetalleDialog: React.FC<PrestamoDetalleDialogProps> = ({
                   className="m-0"
                   style={{ fontWeight: "bold", fontSize: "1.25rem" }}
                 >
-                  {formatCurrency(detalle.resumen.saldo_pendiente)}
+                  {detalle.resumen.saldo_pendiente <= 0
+                    ? formatCurrency(0)
+                    : formatCurrency(detalle.resumen.saldo_pendiente)}
                 </p>
               </div>
             </div>

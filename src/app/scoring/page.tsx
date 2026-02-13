@@ -22,6 +22,7 @@ import type {
   ScoringResult,
   NivelRiesgo,
 } from "@/types/Scoring";
+import ScoringCarousel from "@/components/Scoring/ScoringCarousel";
 
 const riesgoOptions = [
   { label: "Todos", value: null },
@@ -357,104 +358,116 @@ const ScoringPage = () => {
         </div>
       </div>
 
-      {/* Tabla */}
-      <Card className="shadow-2">
-        <div className="flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
-          <h2 className="text-xl font-bold m-0">Socios y Scoring</h2>
-          <div className="flex flex-wrap gap-2 align-items-center">
-            <div className="relative">
-              <i
-                className="pi pi-search absolute text-gray-500"
-                style={{
-                  left: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-              />
-              <InputText
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Buscar socio..."
-                style={{
-                  paddingLeft: "2.5rem",
-                  borderRadius: "8px",
-                  minWidth: 200,
-                }}
+      {/* Tabla - Desktop */}
+      <div className="hidden lg:block">
+        <Card className="shadow-2">
+          <div className="flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+            <h2 className="text-xl font-bold m-0">Socios y Scoring</h2>
+            <div className="flex flex-wrap gap-2 align-items-center">
+              <div className="relative">
+                <i
+                  className="pi pi-search absolute text-gray-500"
+                  style={{
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  }}
+                />
+                <InputText
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Buscar socio..."
+                  style={{
+                    paddingLeft: "2.5rem",
+                    borderRadius: "8px",
+                    minWidth: 200,
+                  }}
+                />
+              </div>
+              <Dropdown
+                value={riesgoFilter}
+                options={riesgoOptions}
+                onChange={(e) => setRiesgoFilter(e.value)}
+                placeholder="Nivel de riesgo"
+                style={{ minWidth: "150px" }}
               />
             </div>
-            <Dropdown
-              value={riesgoFilter}
-              options={riesgoOptions}
-              onChange={(e) => setRiesgoFilter(e.value)}
-              placeholder="Nivel de riesgo"
-              style={{ minWidth: "150px" }}
-            />
           </div>
-        </div>
 
-        <DataTable
-          value={filteredScorings}
-          paginator
-          rows={10}
-          rowsPerPageOptions={[5, 10, 25]}
-          loading={loading}
-          emptyMessage="No se encontraron registros de scoring."
-          className="text-sm"
-          responsiveLayout="scroll"
-          sortField="score"
-          sortOrder={-1}
-        >
-          <Column
-            header="Socio"
-            body={socioBodyTemplate}
-            style={{ minWidth: "180px" }}
-            sortable
-            sortField="nombre_socio"
-          />
-          <Column
-            header="Score"
-            body={scoreBodyTemplate}
-            style={{ width: "80px" }}
-            sortable
+          <DataTable
+            value={filteredScorings}
+            paginator
+            rows={10}
+            rowsPerPageOptions={[5, 10, 25]}
+            loading={loading}
+            emptyMessage="No se encontraron registros de scoring."
+            className="text-sm"
+            responsiveLayout="scroll"
             sortField="score"
-          />
-          <Column
-            header="Riesgo"
-            body={riesgoBodyTemplate}
-            style={{ width: "100px" }}
-            sortable
-            sortField="riesgo"
-          />
-          <Column
-            header="Monto Máximo"
-            body={montoMaxBodyTemplate}
-            style={{ minWidth: "130px" }}
-            sortable
-            sortField="monto_maximo_recomendado"
-          />
-          <Column
-            header="Elegibilidad"
-            body={estadoBodyTemplate}
-            style={{ minWidth: "130px" }}
-          />
-          <Column
-            header="Última Actualización"
-            field="fecha_calculo"
-            body={(row: ScoringSocioResumen) => (
-              <span className="text-sm text-600">
-                {formatDate(row.fecha_calculo)}
-              </span>
-            )}
-            style={{ minWidth: "120px" }}
-            sortable
-          />
-          <Column
-            header=""
-            body={accionesBodyTemplate}
-            style={{ width: "90px" }}
-          />
-        </DataTable>
-      </Card>
+            sortOrder={-1}
+          >
+            <Column
+              header="Socio"
+              body={socioBodyTemplate}
+              style={{ minWidth: "180px" }}
+              sortable
+              sortField="nombre_socio"
+            />
+            <Column
+              header="Score"
+              body={scoreBodyTemplate}
+              style={{ width: "80px" }}
+              sortable
+              sortField="score"
+            />
+            <Column
+              header="Riesgo"
+              body={riesgoBodyTemplate}
+              style={{ width: "100px" }}
+              sortable
+              sortField="riesgo"
+            />
+            <Column
+              header="Monto Máximo"
+              body={montoMaxBodyTemplate}
+              style={{ minWidth: "130px" }}
+              sortable
+              sortField="monto_maximo_recomendado"
+            />
+            <Column
+              header="Elegibilidad"
+              body={estadoBodyTemplate}
+              style={{ minWidth: "130px" }}
+            />
+            <Column
+              header="Última Actualización"
+              field="fecha_calculo"
+              body={(row: ScoringSocioResumen) => (
+                <span className="text-sm text-600">
+                  {formatDate(row.fecha_calculo)}
+                </span>
+              )}
+              style={{ minWidth: "120px" }}
+              sortable
+            />
+            <Column
+              header=""
+              body={accionesBodyTemplate}
+              style={{ width: "90px" }}
+            />
+          </DataTable>
+        </Card>
+      </div>
+
+      {/* Carousel - Vista Mobile/Tablet */}
+      <div className="lg:hidden">
+        <ScoringCarousel
+          scorings={scorings}
+          onVerDetalle={handleVerDetalle}
+          onRecalcular={handleRecalcular}
+          recalculando={recalculando}
+        />
+      </div>
 
       {/* Detalle Dialog */}
       <Dialog

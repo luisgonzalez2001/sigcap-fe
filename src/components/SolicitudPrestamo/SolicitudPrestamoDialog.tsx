@@ -52,9 +52,9 @@ const getRiesgoConfig = (nivel: NivelRiesgo) => {
 };
 
 const getScoreColor = (score: number): string => {
-  if (score >= 750) return "#059669";
-  if (score >= 500) return "#2563EB";
-  if (score >= 300) return "#D97706";
+  if (score >= 75) return "#059669";
+  if (score >= 50) return "#2563EB";
+  if (score >= 30) return "#D97706";
   return "#DC2626";
 };
 
@@ -244,7 +244,7 @@ export default function SolicitudPrestamoDialog({
               <div className="flex flex-column align-items-center">
                 <Knob
                   value={elegibilidad.scoring.score}
-                  max={1000}
+                  max={100}
                   readOnly
                   size={100}
                   valueColor={getScoreColor(elegibilidad.scoring.score)}
@@ -387,17 +387,62 @@ export default function SolicitudPrestamoDialog({
               }}
             >
               <h4 className="m-0 mb-2 text-green-800">
-                <i className="pi pi-info-circle mr-2" />
-                Resumen de solicitud
+                <i className="pi pi-calculator mr-2" />
+                Resumen estimado de solicitud
               </h4>
-              <div className="flex flex-column gap-1 text-sm">
-                <span className="text-green-700">
-                  Monto: <strong>{formatCurrency(montoSolicitado)}</strong>
-                </span>
-                <span className="text-green-700">
-                  Plazo: <strong>{plazoMeses} meses</strong>
-                </span>
+              <div className="flex flex-column gap-2 text-sm">
+                <div className="flex justify-content-between">
+                  <span className="text-green-700">Monto solicitado:</span>
+                  <strong className="text-green-800">
+                    {formatCurrency(montoSolicitado)}
+                  </strong>
+                </div>
+                <div className="flex justify-content-between">
+                  <span className="text-green-700">Plazo:</span>
+                  <strong className="text-green-800">{plazoMeses} meses</strong>
+                </div>
+                <div className="flex justify-content-between">
+                  <span className="text-green-700">
+                    Tasa de interés (simple):
+                  </span>
+                  <strong className="text-green-800">5% mensual</strong>
+                </div>
+                <div className="flex justify-content-between">
+                  <span className="text-green-700">Intereses estimados:</span>
+                  <strong style={{ color: "#9333ea" }}>
+                    {formatCurrency(montoSolicitado * 0.05 * plazoMeses)}
+                  </strong>
+                </div>
+                <div
+                  className="flex justify-content-between pt-2 mt-1"
+                  style={{ borderTop: "1px solid #BBF7D0" }}
+                >
+                  <span className="text-green-700 font-semibold">
+                    Total estimado a pagar:
+                  </span>
+                  <strong style={{ color: "#dc2626", fontSize: "1rem" }}>
+                    {formatCurrency(
+                      montoSolicitado + montoSolicitado * 0.05 * plazoMeses,
+                    )}
+                  </strong>
+                </div>
+                <div className="flex justify-content-between">
+                  <span className="text-green-700">Cuota mensual aprox.:</span>
+                  <strong style={{ color: "#2563eb" }}>
+                    {formatCurrency(
+                      (montoSolicitado + montoSolicitado * 0.05 * plazoMeses) /
+                        plazoMeses,
+                    )}
+                  </strong>
+                </div>
               </div>
+              <p
+                className="m-0 mt-2 text-xs"
+                style={{ color: "#6b7280", fontStyle: "italic" }}
+              >
+                * Los valores finales pueden variar según la aprobación del
+                administrador.
+              </p>
             </div>
           )}
 

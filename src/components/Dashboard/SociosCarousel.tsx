@@ -165,6 +165,7 @@ const SociosCarousel = ({
           itemTemplate={socioTemplate}
           circular
           autoplayInterval={0}
+          showIndicators={false}
         />
       )}
     </div>

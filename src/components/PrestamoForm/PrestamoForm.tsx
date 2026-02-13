@@ -86,8 +86,8 @@ const PrestamoForm: React.FC<PrestamoFormProps> = ({
   const resetForm = () => {
     setSelectedPartner(null);
     setMontoOriginal(null);
-    setTasaInteres(10);
-    setTasaMora(2);
+    setTasaInteres(5);
+    setTasaMora(1);
     setPlazoMeses(null);
     setTipoInteres("simple" as TipoInteres);
     setNotas("");

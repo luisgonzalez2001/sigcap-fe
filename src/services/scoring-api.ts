@@ -34,7 +34,7 @@ export async function getScoringList(): Promise<ScoringListResponse> {
  * Recalcular scoring de un socio (admin)
  */
 export async function recalcularScoring(socioId: string): Promise<ScoringResponse> {
-    const { data } = await api.post<ScoringResponse>(`/scoring/recalcular/${socioId}`);
+    const { data } = await api.post<ScoringResponse>(`/scoring/admin/pre-scoring/${socioId}`);
     return data;
 }
 

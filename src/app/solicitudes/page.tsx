@@ -19,14 +19,11 @@ import { Chip } from "primereact/chip";
 import { TabView, TabPanel } from "primereact/tabview";
 import { ProgressSpinner } from "primereact/progressspinner";
 import { Knob } from "primereact/knob";
-import { InputNumber } from "primereact/inputnumber";
 
-import {
-  getSolicitudesPrestamo,
-  aprobarSolicitudPrestamo,
-  rechazarSolicitudPrestamo,
-} from "@/services/scoring-api";
+import { getSolicitudesPrestamo } from "@/services/scoring-api";
 import type { SolicitudPrestamo, NivelRiesgo } from "@/types/Scoring";
+import AprobarPrestamoDialog from "@/components/SolicitudPrestamo/AprobarPrestamoDialog";
+import RechazarPrestamoDialog from "@/components/SolicitudPrestamo/RechazarPrestamoDialog";
 
 // ==== Tipos para solicitudes de asociación ====
 interface Usuario {
@@ -63,9 +60,9 @@ const getRiesgoConfig = (nivel: NivelRiesgo) => {
 };
 
 const getScoreColor = (score: number): string => {
-  if (score >= 750) return "#059669";
-  if (score >= 500) return "#2563EB";
-  if (score >= 300) return "#D97706";
+  if (score >= 75) return "#059669";
+  if (score >= 50) return "#2563EB";
+  if (score >= 30) return "#D97706";
   return "#DC2626";
 };
 
@@ -114,11 +111,6 @@ const getMontoMaximoRecomendado = (s: SolicitudPrestamo): number =>
     ? parseFloat(s.monto_maximo_recomendado) || 0
     : (s.monto_maximo_recomendado ?? 0);
 
-const getMontoOptimoSugerido = (s: SolicitudPrestamo): number =>
-  typeof s.monto_optimo_sugerido === "string"
-    ? parseFloat(s.monto_optimo_sugerido) || 0
-    : (s.monto_optimo_sugerido ?? 0);
-
 const getAdminNombre = (s: SolicitudPrestamo): string => {
   const a = s.admin_resolucion;
   if (a) return `${a.name} ${a.lastName}`.trim();
@@ -149,18 +141,12 @@ const SolicitudesPage = () => {
     SolicitudPrestamo[]
   >([]);
   const [loadingPrestamo, setLoadingPrestamo] = useState(true);
-  const [actionLoadingPrestamo, setActionLoadingPrestamo] = useState(false);
   const [selectedSolicitudPrestamo, setSelectedSolicitudPrestamo] =
     useState<SolicitudPrestamo | null>(null);
   const [showRejectPrestamoDialog, setShowRejectPrestamoDialog] =
     useState(false);
   const [showApprovePrestamoDialog, setShowApprovePrestamoDialog] =
     useState(false);
-  const [motivoRechazoPrestamo, setMotivoRechazoPrestamo] = useState("");
-  const [montoAprobado, setMontoAprobado] = useState<number | null>(null);
-  const [tasaInteresAprobada, setTasaInteresAprobada] = useState<number | null>(
-    null,
-  );
 
   // Verificar admin
   useEffect(() => {
@@ -269,71 +255,6 @@ const SolicitudesPage = () => {
       });
     } finally {
       setLoadingPrestamo(false);
-    }
-  };
-
-  const handleAprobarPrestamo = async () => {
-    if (!selectedSolicitudPrestamo) return;
-    setActionLoadingPrestamo(true);
-    try {
-      await aprobarSolicitudPrestamo({
-        solicitud_id: selectedSolicitudPrestamo.id,
-        monto_aprobado: montoAprobado || undefined,
-        tasa_interes: tasaInteresAprobada || undefined,
-      });
-      toast.current?.show({
-        severity: "success",
-        summary: "Préstamo Aprobado",
-        detail: `Préstamo aprobado para ${getSocioNombre(selectedSolicitudPrestamo)}`,
-        life: 3000,
-      });
-      setShowApprovePrestamoDialog(false);
-      setSelectedSolicitudPrestamo(null);
-      setMontoAprobado(null);
-      setTasaInteresAprobada(null);
-      loadSolicitudesPrestamo();
-    } catch (error) {
-      const err = error as AxiosError<{ message?: string }>;
-      toast.current?.show({
-        severity: "error",
-        summary: "Error",
-        detail: err.response?.data?.message || "No se pudo aprobar el préstamo",
-        life: 3000,
-      });
-    } finally {
-      setActionLoadingPrestamo(false);
-    }
-  };
-
-  const handleRechazarPrestamo = async () => {
-    if (!selectedSolicitudPrestamo || !motivoRechazoPrestamo.trim()) return;
-    setActionLoadingPrestamo(true);
-    try {
-      await rechazarSolicitudPrestamo({
-        solicitud_id: selectedSolicitudPrestamo.id,
-        motivo_rechazo: motivoRechazoPrestamo,
-      });
-      toast.current?.show({
-        severity: "info",
-        summary: "Solicitud Rechazada",
-        detail: "Se ha notificado al socio",
-        life: 3000,
-      });
-      setShowRejectPrestamoDialog(false);
-      setSelectedSolicitudPrestamo(null);
-      setMotivoRechazoPrestamo("");
-      loadSolicitudesPrestamo();
-    } catch (error) {
-      const err = error as AxiosError<{ message?: string }>;
-      toast.current?.show({
-        severity: "error",
-        summary: "Error",
-        detail:
-          err.response?.data?.message || "No se pudo rechazar la solicitud",
-        life: 3000,
-      });
-    } finally {
-      setActionLoadingPrestamo(false);
     }
   };
 
@@ -553,11 +474,8 @@ const SolicitudesPage = () => {
           tooltipOptions={{ position: "top" }}
           onClick={() => {
             setSelectedSolicitudPrestamo(rowData);
-            setMontoAprobado(getMontoSolicitado(rowData));
-            setTasaInteresAprobada(null);
             setShowApprovePrestamoDialog(true);
           }}
-          disabled={actionLoadingPrestamo}
         />
         <Button
           icon="pi pi-times"
@@ -570,7 +488,6 @@ const SolicitudesPage = () => {
             setSelectedSolicitudPrestamo(rowData);
             setShowRejectPrestamoDialog(true);
           }}
-          disabled={actionLoadingPrestamo}
         />
       </div>
     );
@@ -826,17 +743,227 @@ const SolicitudesPage = () => {
             </span>
           }
         >
-          {/* Pendientes */}
+          {/* Pendientes - Desktop */}
           {pendientesPrestamo.length > 0 && (
             <Card className="mb-4 shadow-1">
               <h3 className="text-lg font-bold text-900 mb-3 flex align-items-center gap-2">
                 <i className="pi pi-clock text-yellow-600" />
                 Solicitudes Pendientes
               </h3>
+
+              {/* Tabla desktop */}
+              <div className="hidden md:block">
+                <DataTable
+                  value={pendientesPrestamo}
+                  loading={loadingPrestamo}
+                  emptyMessage="No hay solicitudes pendientes"
+                  responsiveLayout="scroll"
+                  className="p-datatable-sm"
+                >
+                  <Column
+                    header="Socio"
+                    body={socioPrestamoBodyTemplate}
+                    style={{ minWidth: "180px" }}
+                  />
+                  <Column
+                    header="Monto/Plazo"
+                    body={montoPrestamoBodyTemplate}
+                    style={{ minWidth: "130px" }}
+                  />
+                  <Column
+                    header="Scoring"
+                    body={scoringPrestamoBodyTemplate}
+                    style={{ minWidth: "140px" }}
+                  />
+                  <Column
+                    header="Máx. Sugerido"
+                    body={(row: SolicitudPrestamo) => (
+                      <span className="text-sm font-semibold text-green-700">
+                        {formatCurrency(getMontoMaximoRecomendado(row))}
+                      </span>
+                    )}
+                    style={{ minWidth: "120px" }}
+                  />
+                  <Column
+                    header="Motivo"
+                    body={(row: SolicitudPrestamo) => (
+                      <span className="text-sm text-600">
+                        {row.mensaje_socio || "Sin motivo"}
+                      </span>
+                    )}
+                    style={{ minWidth: "180px" }}
+                  />
+                  <Column
+                    header="Fecha"
+                    body={(row: SolicitudPrestamo) => (
+                      <span className="text-sm text-600">
+                        {formatDate(row.created_at)}
+                      </span>
+                    )}
+                    style={{ minWidth: "130px" }}
+                  />
+                  <Column
+                    header="Acciones"
+                    body={accionesPrestamoBodyTemplate}
+                    style={{ minWidth: "110px" }}
+                  />
+                </DataTable>
+              </div>
+
+              {/* Cards mobile */}
+              <div className="md:hidden flex flex-column gap-3">
+                {pendientesPrestamo.map((row) => {
+                  const nombre = getSocioNombre(row);
+                  const nSocio = getSocioNSocio(row);
+                  const score = getScoreAlSolicitar(row);
+                  const riesgoConfig = getRiesgoConfig(
+                    getRiesgoAlSolicitar(row),
+                  );
+                  return (
+                    <div
+                      key={row.id}
+                      className="p-3 border-round"
+                      style={{
+                        backgroundColor: "#f9fafb",
+                        border: "1px solid #e5e7eb",
+                      }}
+                    >
+                      {/* Header: Socio + Scoring */}
+                      <div className="flex align-items-center justify-content-between mb-3">
+                        <div className="flex align-items-center gap-2">
+                          <div
+                            className="flex align-items-center justify-content-center"
+                            style={{
+                              width: "2.25rem",
+                              height: "2.25rem",
+                              borderRadius: "50%",
+                              background:
+                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              color: "white",
+                              fontSize: "0.7rem",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {nombre
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .substring(0, 2)
+                              .toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-900 text-sm">
+                              {nombre}
+                            </div>
+                            <div className="text-xs text-600">#{nSocio}</div>
+                          </div>
+                        </div>
+                        <div className="flex align-items-center gap-2">
+                          <Knob
+                            value={score}
+                            max={1000}
+                            readOnly
+                            size={30}
+                            valueColor={getScoreColor(score)}
+                            rangeColor="#E2E8F0"
+                            valueTemplate="{value}"
+                            textColor={getScoreColor(score)}
+                            strokeWidth={8}
+                          />
+                          <Tag
+                            value={riesgoConfig.label}
+                            severity={riesgoConfig.severity}
+                            style={{ fontSize: "0.7rem" }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Info rows */}
+                      <div className="flex flex-column gap-2 mb-3">
+                        <div className="flex justify-content-between">
+                          <span className="text-600 text-sm">Solicitado:</span>
+                          <span className="font-semibold text-900 text-sm">
+                            {formatCurrency(getMontoSolicitado(row))}
+                          </span>
+                        </div>
+                        <div className="flex justify-content-between">
+                          <span className="text-600 text-sm">Plazo:</span>
+                          <span className="font-semibold text-900 text-sm">
+                            {row.plazo_meses} meses
+                          </span>
+                        </div>
+                        <div className="flex justify-content-between">
+                          <span className="text-600 text-sm">
+                            Máx. sugerido:
+                          </span>
+                          <span className="font-semibold text-green-700 text-sm">
+                            {formatCurrency(getMontoMaximoRecomendado(row))}
+                          </span>
+                        </div>
+                        {row.mensaje_socio && (
+                          <div>
+                            <span className="text-600 text-sm">Motivo: </span>
+                            <span className="text-sm text-800">
+                              {row.mensaje_socio}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-content-between">
+                          <span className="text-600 text-sm">Fecha:</span>
+                          <span className="text-sm text-600">
+                            {formatDate(row.created_at)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex gap-2">
+                        <Button
+                          label="Aprobar"
+                          icon="pi pi-check"
+                          severity="success"
+                          size="small"
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedSolicitudPrestamo(row);
+                            setShowApprovePrestamoDialog(true);
+                          }}
+                        />
+                        <Button
+                          label="Rechazar"
+                          icon="pi pi-times"
+                          severity="danger"
+                          size="small"
+                          outlined
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedSolicitudPrestamo(row);
+                            setShowRejectPrestamoDialog(true);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {/* Historial */}
+          <Card className="shadow-1">
+            <h3 className="text-lg font-bold text-900 mb-3 flex align-items-center gap-2">
+              <i className="pi pi-history text-600" />
+              Historial de Solicitudes
+            </h3>
+
+            {/* Tabla desktop */}
+            <div className="hidden md:block">
               <DataTable
-                value={pendientesPrestamo}
+                value={resueltasPrestamo}
                 loading={loadingPrestamo}
-                emptyMessage="No hay solicitudes pendientes"
+                emptyMessage="No hay solicitudes resueltas"
+                paginator
+                rows={10}
                 responsiveLayout="scroll"
                 className="p-datatable-sm"
               >
@@ -846,7 +973,7 @@ const SolicitudesPage = () => {
                   style={{ minWidth: "180px" }}
                 />
                 <Column
-                  header="Monto/Plazo"
+                  header="Monto"
                   body={montoPrestamoBodyTemplate}
                   style={{ minWidth: "130px" }}
                 />
@@ -856,22 +983,9 @@ const SolicitudesPage = () => {
                   style={{ minWidth: "140px" }}
                 />
                 <Column
-                  header="Máx. Sugerido"
-                  body={(row: SolicitudPrestamo) => (
-                    <span className="text-sm font-semibold text-green-700">
-                      {formatCurrency(getMontoMaximoRecomendado(row))}
-                    </span>
-                  )}
-                  style={{ minWidth: "120px" }}
-                />
-                <Column
-                  header="Motivo"
-                  body={(row: SolicitudPrestamo) => (
-                    <span className="text-sm text-600">
-                      {row.mensaje_socio || "Sin motivo"}
-                    </span>
-                  )}
-                  style={{ minWidth: "180px" }}
+                  header="Estado"
+                  body={estadoPrestamoBodyTemplate}
+                  style={{ minWidth: "100px" }}
                 />
                 <Column
                   header="Fecha"
@@ -883,64 +997,108 @@ const SolicitudesPage = () => {
                   style={{ minWidth: "130px" }}
                 />
                 <Column
-                  header="Acciones"
+                  header="Detalles"
                   body={accionesPrestamoBodyTemplate}
-                  style={{ minWidth: "110px" }}
+                  style={{ minWidth: "200px" }}
                 />
               </DataTable>
-            </Card>
-          )}
+            </div>
 
-          {/* Historial */}
-          <Card className="shadow-1">
-            <h3 className="text-lg font-bold text-900 mb-3 flex align-items-center gap-2">
-              <i className="pi pi-history text-600" />
-              Historial de Solicitudes
-            </h3>
-            <DataTable
-              value={resueltasPrestamo}
-              loading={loadingPrestamo}
-              emptyMessage="No hay solicitudes resueltas"
-              paginator
-              rows={10}
-              responsiveLayout="scroll"
-              className="p-datatable-sm"
-            >
-              <Column
-                header="Socio"
-                body={socioPrestamoBodyTemplate}
-                style={{ minWidth: "180px" }}
-              />
-              <Column
-                header="Monto"
-                body={montoPrestamoBodyTemplate}
-                style={{ minWidth: "130px" }}
-              />
-              <Column
-                header="Scoring"
-                body={scoringPrestamoBodyTemplate}
-                style={{ minWidth: "140px" }}
-              />
-              <Column
-                header="Estado"
-                body={estadoPrestamoBodyTemplate}
-                style={{ minWidth: "100px" }}
-              />
-              <Column
-                header="Fecha"
-                body={(row: SolicitudPrestamo) => (
-                  <span className="text-sm text-600">
-                    {formatDate(row.created_at)}
-                  </span>
-                )}
-                style={{ minWidth: "130px" }}
-              />
-              <Column
-                header="Detalles"
-                body={accionesPrestamoBodyTemplate}
-                style={{ minWidth: "200px" }}
-              />
-            </DataTable>
+            {/* Cards mobile - historial */}
+            <div className="md:hidden flex flex-column gap-3">
+              {loadingPrestamo ? (
+                <div className="flex justify-content-center py-4">
+                  <ProgressSpinner style={{ width: "40px", height: "40px" }} />
+                </div>
+              ) : resueltasPrestamo.length === 0 ? (
+                <p className="text-center text-600 py-4">
+                  No hay solicitudes resueltas
+                </p>
+              ) : (
+                resueltasPrestamo.map((row) => {
+                  const nombre = getSocioNombre(row);
+                  const nSocio = getSocioNSocio(row);
+                  const severityMap = {
+                    pendiente: "warning",
+                    aprobada: "success",
+                    rechazada: "danger",
+                    cancelada: "secondary",
+                  } as const;
+                  const labelMap = {
+                    pendiente: "Pendiente",
+                    aprobada: "Aprobada",
+                    rechazada: "Rechazada",
+                    cancelada: "Cancelada",
+                  };
+                  return (
+                    <div
+                      key={row.id}
+                      className="p-3 border-round"
+                      style={{
+                        backgroundColor: "#f9fafb",
+                        border: "1px solid #e5e7eb",
+                      }}
+                    >
+                      <div className="flex align-items-center justify-content-between mb-2">
+                        <div className="flex align-items-center gap-2">
+                          <div
+                            className="flex align-items-center justify-content-center"
+                            style={{
+                              width: "2rem",
+                              height: "2rem",
+                              borderRadius: "50%",
+                              background:
+                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              color: "white",
+                              fontSize: "0.65rem",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {nombre
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .substring(0, 2)
+                              .toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-900 text-sm">
+                              {nombre}
+                            </div>
+                            <div className="text-xs text-600">#{nSocio}</div>
+                          </div>
+                        </div>
+                        <Tag
+                          value={labelMap[row.estado]}
+                          severity={severityMap[row.estado]}
+                          style={{ fontSize: "0.7rem" }}
+                        />
+                      </div>
+                      <div className="flex justify-content-between text-sm">
+                        <span className="text-600">
+                          {formatCurrency(getMontoSolicitado(row))} ·{" "}
+                          {row.plazo_meses}m
+                        </span>
+                        <span className="text-600">
+                          {formatDate(row.created_at)}
+                        </span>
+                      </div>
+                      {row.estado === "rechazada" && row.motivo_rechazo && (
+                        <p className="text-xs text-600 mt-2 m-0">
+                          <i className="pi pi-info-circle mr-1" />
+                          {row.motivo_rechazo}
+                        </p>
+                      )}
+                      {row.estado === "aprobada" && (
+                        <p className="text-xs text-green-600 mt-2 m-0 font-semibold">
+                          Aprobada por {getAdminNombre(row)}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </Card>
 
           {loadingPrestamo && solicitudesPrestamo.length === 0 && (
@@ -1015,214 +1173,65 @@ const SolicitudesPage = () => {
         )}
       </Dialog>
 
-      {/* Dialog aprobar préstamo */}
-      <Dialog
-        header="Aprobar Solicitud de Préstamo"
+      {/* Dialog aprobar préstamo (componente separado) */}
+      <AprobarPrestamoDialog
         visible={showApprovePrestamoDialog}
-        style={{ width: "95vw", maxWidth: "550px" }}
+        solicitud={selectedSolicitudPrestamo}
         onHide={() => {
-          if (!actionLoadingPrestamo) {
-            setShowApprovePrestamoDialog(false);
-            setSelectedSolicitudPrestamo(null);
-          }
+          setShowApprovePrestamoDialog(false);
+          setSelectedSolicitudPrestamo(null);
         }}
-        draggable={false}
-        resizable={false}
-      >
-        {selectedSolicitudPrestamo && (
-          <div className="flex flex-column gap-4">
-            {/* Info del socio */}
-            <div className="surface-50 p-3 border-round">
-              <div className="flex justify-content-between align-items-center mb-2">
-                <p className="m-0 font-semibold text-900">
-                  {getSocioNombre(selectedSolicitudPrestamo)} (#
-                  {getSocioNSocio(selectedSolicitudPrestamo)})
-                </p>
-                <div className="flex align-items-center gap-2">
-                  <Knob
-                    value={getScoreAlSolicitar(selectedSolicitudPrestamo)}
-                    max={1000}
-                    readOnly
-                    size={35}
-                    valueColor={getScoreColor(
-                      getScoreAlSolicitar(selectedSolicitudPrestamo),
-                    )}
-                    rangeColor="#E2E8F0"
-                    valueTemplate="{value}"
-                    textColor={getScoreColor(
-                      getScoreAlSolicitar(selectedSolicitudPrestamo),
-                    )}
-                    strokeWidth={8}
-                  />
-                  <Tag
-                    value={
-                      getRiesgoConfig(
-                        getRiesgoAlSolicitar(selectedSolicitudPrestamo),
-                      ).label
-                    }
-                    severity={
-                      getRiesgoConfig(
-                        getRiesgoAlSolicitar(selectedSolicitudPrestamo),
-                      ).severity
-                    }
-                  />
-                </div>
-              </div>
-              <div className="flex flex-column gap-1 text-sm text-600">
-                <span>
-                  Solicitado:{" "}
-                  <strong>
-                    {formatCurrency(
-                      getMontoSolicitado(selectedSolicitudPrestamo),
-                    )}
-                  </strong>{" "}
-                  a{" "}
-                  <strong>{selectedSolicitudPrestamo.plazo_meses} meses</strong>
-                </span>
-                <span>
-                  Máx. recomendado:{" "}
-                  <strong className="text-green-700">
-                    {formatCurrency(
-                      getMontoMaximoRecomendado(selectedSolicitudPrestamo),
-                    )}
-                  </strong>
-                </span>
-                <span>
-                  Óptimo sugerido:{" "}
-                  <strong>
-                    {formatCurrency(
-                      getMontoOptimoSugerido(selectedSolicitudPrestamo),
-                    )}
-                  </strong>
-                </span>
-                {selectedSolicitudPrestamo.mensaje_socio && (
-                  <span>Motivo: {selectedSolicitudPrestamo.mensaje_socio}</span>
-                )}
-              </div>
-            </div>
+        onSuccess={() => {
+          toast.current?.show({
+            severity: "success",
+            summary: "Préstamo Aprobado",
+            detail: selectedSolicitudPrestamo
+              ? `Préstamo aprobado para ${getSocioNombre(selectedSolicitudPrestamo)}`
+              : "Préstamo aprobado",
+            life: 3000,
+          });
+          setShowApprovePrestamoDialog(false);
+          setSelectedSolicitudPrestamo(null);
+          loadSolicitudesPrestamo();
+        }}
+        onError={(msg) => {
+          toast.current?.show({
+            severity: "error",
+            summary: "Error",
+            detail: msg,
+            life: 3000,
+          });
+        }}
+      />
 
-            {/* Adjust values */}
-            <div className="flex flex-column gap-3">
-              <div className="flex flex-column gap-2">
-                <label className="font-semibold text-900 text-sm">
-                  Monto a aprobar
-                </label>
-                <InputNumber
-                  value={montoAprobado}
-                  onValueChange={(e) => setMontoAprobado(e.value ?? null)}
-                  mode="currency"
-                  currency="MXN"
-                  locale="es-MX"
-                  className="w-full"
-                  disabled={actionLoadingPrestamo}
-                />
-              </div>
-              <div className="flex flex-column gap-2">
-                <label className="font-semibold text-900 text-sm">
-                  Tasa de interés (%)
-                </label>
-                <InputNumber
-                  value={tasaInteresAprobada}
-                  onValueChange={(e) => setTasaInteresAprobada(e.value ?? null)}
-                  suffix="%"
-                  min={0}
-                  max={100}
-                  minFractionDigits={1}
-                  maxFractionDigits={2}
-                  className="w-full"
-                  disabled={actionLoadingPrestamo}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 justify-content-end">
-              <Button
-                label="Cancelar"
-                outlined
-                onClick={() => {
-                  setShowApprovePrestamoDialog(false);
-                  setSelectedSolicitudPrestamo(null);
-                }}
-                disabled={actionLoadingPrestamo}
-              />
-              <Button
-                label="Aprobar Préstamo"
-                icon="pi pi-check"
-                severity="success"
-                onClick={handleAprobarPrestamo}
-                loading={actionLoadingPrestamo}
-              />
-            </div>
-          </div>
-        )}
-      </Dialog>
-
-      {/* Dialog rechazar préstamo */}
-      <Dialog
-        header="Rechazar Solicitud de Préstamo"
+      {/* Dialog rechazar préstamo (componente separado) */}
+      <RechazarPrestamoDialog
         visible={showRejectPrestamoDialog}
-        style={{ width: "90vw", maxWidth: "500px" }}
+        solicitud={selectedSolicitudPrestamo}
         onHide={() => {
-          if (!actionLoadingPrestamo) {
-            setShowRejectPrestamoDialog(false);
-            setSelectedSolicitudPrestamo(null);
-            setMotivoRechazoPrestamo("");
-          }
+          setShowRejectPrestamoDialog(false);
+          setSelectedSolicitudPrestamo(null);
         }}
-        draggable={false}
-        resizable={false}
-      >
-        {selectedSolicitudPrestamo && (
-          <div className="flex flex-column gap-3">
-            <div className="surface-50 p-3 border-round">
-              <p className="m-0 font-semibold text-900 mb-1">
-                {getSocioNombre(selectedSolicitudPrestamo)} (#
-                {getSocioNSocio(selectedSolicitudPrestamo)})
-              </p>
-              <p className="m-0 text-sm text-600">
-                Monto:{" "}
-                {formatCurrency(getMontoSolicitado(selectedSolicitudPrestamo))}{" "}
-                a {selectedSolicitudPrestamo.plazo_meses} meses
-              </p>
-            </div>
-            <div className="flex flex-column gap-2">
-              <label className="font-semibold text-sm">
-                Motivo del rechazo <span className="text-red-500">*</span>
-              </label>
-              <InputTextarea
-                value={motivoRechazoPrestamo}
-                onChange={(e) => setMotivoRechazoPrestamo(e.target.value)}
-                rows={3}
-                maxLength={500}
-                placeholder="Describe el motivo del rechazo..."
-                disabled={actionLoadingPrestamo}
-              />
-              <small className="text-400">
-                {motivoRechazoPrestamo.length}/500
-              </small>
-            </div>
-            <div className="flex gap-2 justify-content-end">
-              <Button
-                label="Cancelar"
-                outlined
-                onClick={() => {
-                  setShowRejectPrestamoDialog(false);
-                  setSelectedSolicitudPrestamo(null);
-                  setMotivoRechazoPrestamo("");
-                }}
-                disabled={actionLoadingPrestamo}
-              />
-              <Button
-                label="Rechazar"
-                severity="danger"
-                onClick={handleRechazarPrestamo}
-                loading={actionLoadingPrestamo}
-                disabled={!motivoRechazoPrestamo.trim()}
-              />
-            </div>
-          </div>
-        )}
-      </Dialog>
+        onSuccess={() => {
+          toast.current?.show({
+            severity: "info",
+            summary: "Solicitud Rechazada",
+            detail: "Se ha notificado al socio",
+            life: 3000,
+          });
+          setShowRejectPrestamoDialog(false);
+          setSelectedSolicitudPrestamo(null);
+          loadSolicitudesPrestamo();
+        }}
+        onError={(msg) => {
+          toast.current?.show({
+            severity: "error",
+            summary: "Error",
+            detail: msg,
+            life: 3000,
+          });
+        }}
+      />
     </div>
   );
 };
