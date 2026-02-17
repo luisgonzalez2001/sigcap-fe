@@ -16,6 +16,7 @@ import {
   getScoringList,
   getScoringBySocio,
   recalcularScoring,
+  recalcularScoringMasivo,
 } from "@/services/scoring-api";
 import type {
   ScoringSocioResumen,
@@ -71,6 +72,7 @@ const ScoringPage = () => {
   const [selectedSocio, setSelectedSocio] =
     useState<ScoringSocioResumen | null>(null);
   const [recalculando, setRecalculando] = useState<string | null>(null);
+  const [recalculandoMasivo, setRecalculandoMasivo] = useState(false);
 
   // Cargar scoring list
   const loadScorings = useCallback(async () => {
@@ -137,6 +139,30 @@ const ScoringPage = () => {
       });
     } finally {
       setRecalculando(null);
+    }
+  };
+
+  // Recalcular scoring masivo
+  const handleRecalcularMasivo = async () => {
+    setRecalculandoMasivo(true);
+    try {
+      await recalcularScoringMasivo();
+      toast.current?.show({
+        severity: "success",
+        summary: "Scoring recalculado",
+        detail: "El scoring de todos los socios se actualizó correctamente",
+        life: 3000,
+      });
+      await loadScorings();
+    } catch {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "No se pudo recalcular el scoring masivo",
+        life: 3000,
+      });
+    } finally {
+      setRecalculandoMasivo(false);
     }
   };
 
@@ -391,6 +417,16 @@ const ScoringPage = () => {
                 placeholder="Nivel de riesgo"
                 style={{ minWidth: "150px" }}
               />
+              <Button
+                icon="pi pi-sync"
+                severity="help"
+                size="small"
+                rounded
+                tooltip="Recalcular scoring de todos los socios"
+                tooltipOptions={{ position: "bottom" }}
+                loading={recalculandoMasivo}
+                onClick={handleRecalcularMasivo}
+              />
             </div>
           </div>
 
@@ -466,6 +502,8 @@ const ScoringPage = () => {
           onVerDetalle={handleVerDetalle}
           onRecalcular={handleRecalcular}
           recalculando={recalculando}
+          onRecalcularMasivo={handleRecalcularMasivo}
+          recalculandoMasivo={recalculandoMasivo}
         />
       </div>
 

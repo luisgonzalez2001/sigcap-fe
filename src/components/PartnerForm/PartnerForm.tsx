@@ -4,6 +4,7 @@ import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
+import { Calendar } from "primereact/calendar";
 import type { CreateUserDto, User as Usuario } from "@/types/UserDto";
 
 interface PartnerFormProps {
@@ -11,11 +12,17 @@ interface PartnerFormProps {
   isEditing: boolean;
   crearUsuario: boolean;
   setCrearUsuario: (val: boolean) => void;
-  formData: { id_usuario: string; monto_semanal: number; id?: string };
+  formData: {
+    id_usuario: string;
+    monto_semanal: number;
+    id?: string;
+    antiguedad?: string;
+  };
   setFormData: (val: {
     id_usuario: string;
     monto_semanal: number;
     id?: string;
+    antiguedad?: string;
   }) => void;
   userForm: CreateUserDto;
   setUserForm: (val: CreateUserDto) => void;
@@ -122,6 +129,49 @@ const PartnerForm = ({
               useGrouping={false}
               inputMode="numeric"
             />
+            <div>
+              <label
+                style={{
+                  fontWeight: "600",
+                  color: "#374151",
+                  marginBottom: "0.25rem",
+                  display: "block",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Antigüedad del socio (opcional)
+              </label>
+              <Calendar
+                value={
+                  formData.antiguedad
+                    ? new Date(formData.antiguedad + "T00:00:00")
+                    : null
+                }
+                onChange={(e) => {
+                  if (e.value) {
+                    const d = e.value as Date;
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, "0");
+                    const dd = String(d.getDate()).padStart(2, "0");
+                    setFormData({
+                      ...formData,
+                      antiguedad: `${yyyy}-${mm}-${dd}`,
+                    });
+                  } else {
+                    setFormData({ ...formData, antiguedad: undefined });
+                  }
+                }}
+                dateFormat="dd/mm/yy"
+                placeholder="Selecciona fecha de antigüedad"
+                className="w-full"
+                showIcon
+                maxDate={new Date()}
+                showButtonBar
+              />
+              <small style={{ color: "#6b7280" }}>
+                Si no se especifica, se usará la fecha de registro.
+              </small>
+            </div>
           </div>
         </>
       ) : crearUsuario ? (
@@ -175,6 +225,49 @@ const PartnerForm = ({
               useGrouping={false}
               inputMode="numeric"
             />
+            <div>
+              <label
+                style={{
+                  fontWeight: "600",
+                  color: "#374151",
+                  marginBottom: "0.25rem",
+                  display: "block",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Antigüedad del socio (opcional)
+              </label>
+              <Calendar
+                value={
+                  formData.antiguedad
+                    ? new Date(formData.antiguedad + "T00:00:00")
+                    : null
+                }
+                onChange={(e) => {
+                  if (e.value) {
+                    const d = e.value as Date;
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, "0");
+                    const dd = String(d.getDate()).padStart(2, "0");
+                    setFormData({
+                      ...formData,
+                      antiguedad: `${yyyy}-${mm}-${dd}`,
+                    });
+                  } else {
+                    setFormData({ ...formData, antiguedad: undefined });
+                  }
+                }}
+                dateFormat="dd/mm/yy"
+                placeholder="Selecciona fecha de antigüedad"
+                className="w-full"
+                showIcon
+                maxDate={new Date()}
+                showButtonBar
+              />
+              <small style={{ color: "#6b7280" }}>
+                Si no se especifica, se usará la fecha de registro.
+              </small>
+            </div>
           </div>
         </>
       ) : (
@@ -308,6 +401,50 @@ const PartnerForm = ({
               useGrouping={false}
               inputMode="numeric"
             />
+          </div>
+
+          <div className="mb-3">
+            <label
+              style={{
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "0.25rem",
+                display: "block",
+                fontSize: "0.875rem",
+              }}
+            >
+              Antigüedad del socio (opcional)
+            </label>
+            <Calendar
+              value={
+                formData.antiguedad
+                  ? new Date(formData.antiguedad + "T00:00:00")
+                  : null
+              }
+              onChange={(e) => {
+                if (e.value) {
+                  const d = e.value as Date;
+                  const yyyy = d.getFullYear();
+                  const mm = String(d.getMonth() + 1).padStart(2, "0");
+                  const dd = String(d.getDate()).padStart(2, "0");
+                  setFormData({
+                    ...formData,
+                    antiguedad: `${yyyy}-${mm}-${dd}`,
+                  });
+                } else {
+                  setFormData({ ...formData, antiguedad: undefined });
+                }
+              }}
+              dateFormat="dd/mm/yy"
+              placeholder="Selecciona fecha de antigüedad"
+              className="w-full"
+              showIcon
+              maxDate={new Date()}
+              showButtonBar
+            />
+            <small style={{ color: "#6b7280" }}>
+              Si no se especifica, se usará la fecha de registro.
+            </small>
           </div>
         </>
       )}

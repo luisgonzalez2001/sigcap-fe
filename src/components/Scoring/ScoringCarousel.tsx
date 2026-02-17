@@ -13,6 +13,8 @@ interface ScoringCarouselProps {
   onVerDetalle: (socio: ScoringSocioResumen) => void;
   onRecalcular: (socioId: string) => void;
   recalculando: string | null;
+  onRecalcularMasivo: () => void;
+  recalculandoMasivo: boolean;
 }
 
 const riesgoOptions = [
@@ -62,6 +64,8 @@ const ScoringCarousel = ({
   onVerDetalle,
   onRecalcular,
   recalculando,
+  onRecalcularMasivo,
+  recalculandoMasivo,
 }: ScoringCarouselProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [riesgoFilter, setRiesgoFilter] = useState<NivelRiesgo | null>(null);
@@ -213,6 +217,16 @@ const ScoringCarousel = ({
     <div className="scoring-carousel">
       {/* Filters */}
       <div className="flex flex-column gap-3 mb-4">
+        <Button
+          label="Recalcular scoring general"
+          icon="pi pi-sync"
+          severity="help"
+          size="small"
+          className="w-full"
+          loading={recalculandoMasivo}
+          onClick={onRecalcularMasivo}
+          style={{ borderRadius: "8px" }}
+        />
         <div className="flex gap-2">
           <span className="p-input-icon-left w-full">
             <i

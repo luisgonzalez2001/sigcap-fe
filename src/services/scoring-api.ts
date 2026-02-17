@@ -38,6 +38,13 @@ export async function recalcularScoring(socioId: string): Promise<ScoringRespons
     return data;
 }
 
+/**
+ * Recálculo masivo de scoring para todos los socios (admin)
+ */
+export async function recalcularScoringMasivo(): Promise<void> {
+    await api.post("/scoring/admin/recalcular", {});
+}
+
 // ===================== ELEGIBILIDAD =====================
 
 /**

@@ -36,6 +36,7 @@ const SociosPage = () => {
     id_usuario: string;
     monto_semanal: number;
     id?: string;
+    antiguedad?: string;
   }>({
     id_usuario: "",
     monto_semanal: 0,
@@ -77,7 +78,7 @@ const SociosPage = () => {
 
   // Handlers
   const openNew = () => {
-    setFormData({ id_usuario: "", monto_semanal: 0 });
+    setFormData({ id_usuario: "", monto_semanal: 0, antiguedad: undefined });
     setUserForm({
       email: "",
       password: "",
@@ -92,7 +93,7 @@ const SociosPage = () => {
 
   const hideDialog = () => {
     setDialogVisible(false);
-    setFormData({ id_usuario: "", monto_semanal: 0 });
+    setFormData({ id_usuario: "", monto_semanal: 0, antiguedad: undefined });
     setUserForm({
       email: "",
       password: "",
@@ -116,9 +117,13 @@ const SociosPage = () => {
         return;
       }
       try {
-        await api.patch(`/partners/${formData.id}`, {
+        const updatePayload: { monto_semanal: number; antiguedad?: string } = {
           monto_semanal: formData.monto_semanal,
-        });
+        };
+        if (formData.antiguedad) {
+          updatePayload.antiguedad = formData.antiguedad;
+        }
+        await api.patch(`/partners/${formData.id}`, updatePayload);
         toast.current?.show({
           severity: "success",
           summary: "Éxito",
@@ -156,10 +161,18 @@ const SociosPage = () => {
           password: "12345",
         });
         const userId = userRes.data.id;
-        await api.post("/partners", {
+        const createPayload: {
+          id_usuario: string;
+          monto_semanal: number;
+          antiguedad?: string;
+        } = {
           id_usuario: userId,
           monto_semanal: formData.monto_semanal,
-        });
+        };
+        if (formData.antiguedad) {
+          createPayload.antiguedad = formData.antiguedad;
+        }
+        await api.post("/partners", createPayload);
         toast.current?.show({
           severity: "success",
           summary: "Éxito",
@@ -201,7 +214,18 @@ const SociosPage = () => {
         return;
       }
       try {
-        await api.post("/partners", formData);
+        const createPayload: {
+          id_usuario: string;
+          monto_semanal: number;
+          antiguedad?: string;
+        } = {
+          id_usuario: formData.id_usuario,
+          monto_semanal: formData.monto_semanal,
+        };
+        if (formData.antiguedad) {
+          createPayload.antiguedad = formData.antiguedad;
+        }
+        await api.post("/partners", createPayload);
         toast.current?.show({
           severity: "success",
           summary: "Éxito",
@@ -328,6 +352,7 @@ const SociosPage = () => {
               id: partner.id,
               id_usuario: partner.id_usuario.id,
               monto_semanal: partner.monto_semanal,
+              antiguedad: partner.antiguedad,
             });
             setUserForm({
               email: partner.id_usuario.email,
@@ -360,6 +385,7 @@ const SociosPage = () => {
               id: partner.id,
               id_usuario: partner.id_usuario.id,
               monto_semanal: partner.monto_semanal,
+              antiguedad: partner.antiguedad,
             });
             setUserForm({
               email: partner.id_usuario.email,

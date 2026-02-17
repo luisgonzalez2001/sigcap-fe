@@ -4,6 +4,7 @@ export interface CreatePartner {
     id: string;
     id_usuario: string;
     monto_semanal: number;
+    antiguedad?: string; // formato YYYY-MM-DD
 }
 
 export interface Partner {
@@ -11,5 +12,6 @@ export interface Partner {
     n_socio: number;
     id_usuario: User;
     monto_semanal: number;
+    antiguedad?: string; // fecha real de antigüedad del socio
 }
 
