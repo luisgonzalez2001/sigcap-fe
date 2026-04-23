@@ -55,6 +55,7 @@ export default function CreditScoringCard({ socioId }: CreditScoringCardProps) {
   const [scoring, setScoring] = useState<ScoringResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [noScoring, setNoScoring] = useState(false);
 
   useEffect(() => {
     if (!socioId) return;
@@ -62,8 +63,18 @@ export default function CreditScoringCard({ socioId }: CreditScoringCardProps) {
     const loadScoring = async () => {
       setLoading(true);
       setError(false);
+      setNoScoring(false);
       try {
         const data = await getScoringBySocio(socioId);
+
+        // Algunos backends responden { message, data: null } cuando aún no hay scoring.
+        // Normalizamos eso a un estado explícito para evitar leer propiedades de undefined.
+        if (!data || (data as unknown as { data?: unknown }).data === null) {
+          setScoring(null);
+          setNoScoring(true);
+          return;
+        }
+
         setScoring(data);
       } catch {
         setError(true);
@@ -91,6 +102,10 @@ export default function CreditScoringCard({ socioId }: CreditScoringCardProps) {
         </div>
       </Card>
     );
+  }
+
+  if (noScoring) {
+    return null;
   }
 
   if (error || !scoring) {
