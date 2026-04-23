@@ -183,3 +183,22 @@ $white: #ffffff;
     margin-top: 1rem;
   }
 }
+
+// Loader Dialog (PrimeReact) - transparente para evitar el cuadro blanco
+.p-dialog-mask.login-loader-mask {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(2px);
+}
+
+.p-dialog.login-loader-dialog {
+  box-shadow: none;
+  border: 0;
+  background: transparent;
+}
+
+.p-dialog.login-loader-dialog .p-dialog-content {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  overflow: visible;
+}
