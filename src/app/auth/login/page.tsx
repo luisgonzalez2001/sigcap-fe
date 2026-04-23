@@ -49,7 +49,7 @@ function LoginForm() {
   const [mounted, setMounted] = useState(false);
   const [password, setPassword] = useState("");
   const [identifier, setIdentifier] = useState("");
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>("email");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("phone");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState<{
@@ -274,7 +274,8 @@ function LoginForm() {
         visible={loading}
         closable={false}
         showHeader={false}
-        className="flex justify-content-center align-items-center"
+        className="login-loader-dialog flex justify-content-center align-items-center"
+        maskClassName="login-loader-mask"
         onHide={() => setLoading(false)}
       >
         <ProgressSpinner />
