@@ -159,6 +159,31 @@ const PrestamosPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, socioExtra?.id, isAdmin, loading]);
 
+  // Resumen calculado excluyendo préstamos cancelados
+  const resumenCalculado = resumen
+    ? (() => {
+        const noCancelados = prestamos.filter((p) => p.estatus !== "cancelado");
+        return {
+          ...resumen,
+          total_prestamos: noCancelados.length,
+          activos: noCancelados.filter((p) => p.estatus === "activo").length,
+          vencidos: noCancelados.filter((p) => p.estatus === "vencido").length,
+          total_prestado: noCancelados.reduce(
+            (sum, p) => sum + Number(p.monto_original),
+            0,
+          ),
+          total_abonado: noCancelados.reduce(
+            (sum, p) => sum + Number(p.monto_abonado),
+            0,
+          ),
+          total_mora: noCancelados.reduce(
+            (sum, p) => sum + Number(p.intereses_mora ?? 0),
+            0,
+          ),
+        };
+      })()
+    : null;
+
   // Filtrar préstamos por búsqueda
   const filteredPrestamos = prestamos.filter((prestamo) => {
     if (!searchValue.trim()) return true;
@@ -567,7 +592,7 @@ const PrestamosPage = () => {
       )}
 
       {/* Estadísticas (solo admin) */}
-      {isAdmin && resumen && (
+      {isAdmin && resumenCalculado && (
         <div className="flex flex-column lg:flex-row gap-3 mb-4">
           <Card className="shadow-sm w-full">
             <div
@@ -601,13 +626,13 @@ const PrestamosPage = () => {
                     color: "#111827",
                   }}
                 >
-                  {resumen.total_prestamos}
+                  {resumenCalculado.total_prestamos}
                 </p>
                 <p
                   className="m-0 mt-1"
                   style={{ fontSize: "0.75rem", color: "#6B7280" }}
                 >
-                  {resumen.activos} activos
+                  {resumenCalculado.activos} activos
                 </p>
               </div>
             </div>
@@ -645,7 +670,7 @@ const PrestamosPage = () => {
                     color: "#111827",
                   }}
                 >
-                  {formatCurrency(resumen.total_prestado)}
+                  {formatCurrency(resumenCalculado.total_prestado)}
                 </p>
               </div>
             </div>
@@ -683,7 +708,7 @@ const PrestamosPage = () => {
                     color: "#111827",
                   }}
                 >
-                  {formatCurrency(resumen.total_abonado)}
+                  {formatCurrency(resumenCalculado.total_abonado)}
                 </p>
               </div>
             </div>
@@ -721,13 +746,13 @@ const PrestamosPage = () => {
                     color: "#DC2626",
                   }}
                 >
-                  {formatCurrency(resumen.total_mora)}
+                  {formatCurrency(resumenCalculado.total_mora)}
                 </p>
                 <p
                   className="m-0 mt-1"
                   style={{ fontSize: "0.75rem", color: "#6B7280" }}
                 >
-                  {resumen.vencidos} vencidos
+                  {resumenCalculado.vencidos} vencidos
                 </p>
               </div>
             </div>

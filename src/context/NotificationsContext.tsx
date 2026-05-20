@@ -91,7 +91,7 @@ const NotificationsContext = createContext<
 // ==================== PROVIDER ====================
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUserData } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
@@ -296,6 +296,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         setNotifications((prev) => [notification, ...prev]);
         setUnreadCount((prev) => prev + 1);
 
+        // Si la notificación es de aprobación de socio, refrescar datos del usuario
+        if (notification.tipo === "socio_aprobado") {
+          refreshUserData();
+        }
+
         // Mostrar toast
         showNotificationToast(notification);
       },
@@ -341,6 +346,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     fetchNotifications,
     fetchUnreadCount,
     showNotificationToast,
+    refreshUserData,
   ]);
 
   // ==================== RETRY CONNECTION ====================

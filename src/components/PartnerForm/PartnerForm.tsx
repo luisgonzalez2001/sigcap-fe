@@ -32,6 +32,12 @@ interface PartnerFormProps {
   loading?: boolean;
 }
 
+// Validaciones
+const validateEmail = (email: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const validatePhone = (phone: string) => /^\d{10}$/.test(phone);
+const validateName = (val: string) => val.trim().length >= 3;
+
 const PartnerForm = ({
   visible,
   isEditing,
@@ -46,25 +52,58 @@ const PartnerForm = ({
   onSave,
   loading = false,
 }: PartnerFormProps) => {
-  // Estado para la búsqueda de usuarios
   const [searchValue, setSearchValue] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Filtrar usuarios por nombre
   const filteredUsuarios = usuarios.filter((u) => {
     if (!searchValue.trim()) return true;
     const fullName = `${u.name} ${u.lastName}`.toLowerCase();
     return fullName.includes(searchValue.toLowerCase());
   });
 
-  // Resetear búsqueda cuando se cierra el diálogo
   useEffect(() => {
     if (!visible) {
       setSearchValue("");
+      setErrors({});
     }
   }, [visible]);
 
-  // Usuario seleccionado del dropdown
   const selectedUser = usuarios.find((u) => u.id === formData.id_usuario);
+
+  const validateAndSave = async () => {
+    const newErrors: Record<string, string> = {};
+
+    if (crearUsuario && !isEditing) {
+      if (!validateName(userForm.name))
+        newErrors.name = "El nombre debe tener al menos 3 caracteres.";
+      if (!validateName(userForm.lastName))
+        newErrors.lastName = "El apellido debe tener al menos 3 caracteres.";
+      if (!validateEmail(userForm.email))
+        newErrors.email = "Ingresa un correo electrónico válido.";
+      if (userForm.phoneNumber && !validatePhone(userForm.phoneNumber))
+        newErrors.phoneNumber =
+          "El teléfono debe tener exactamente 10 dígitos.";
+    }
+
+    if (!isEditing && formData.monto_semanal < 50) {
+      newErrors.monto_semanal = "El monto semanal mínimo es $50.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    await onSave();
+  };
+
+  const fieldError = (field: string) =>
+    errors[field] ? (
+      <small className="p-error" style={{ color: "#ef4444" }}>
+        {errors[field]}
+      </small>
+    ) : null;
 
   return (
     <Dialog
@@ -81,8 +120,11 @@ const PartnerForm = ({
             <input
               type="checkbox"
               checked={crearUsuario}
-              onChange={(e) => setCrearUsuario(e.target.checked)}
-            />
+              onChange={(e) => {
+                setCrearUsuario(e.target.checked);
+                setErrors({});
+              }}
+            />{" "}
             Crear nuevo usuario
           </label>
         </div>
@@ -90,7 +132,6 @@ const PartnerForm = ({
 
       {isEditing ? (
         <>
-          {/* Modo edición: Mostrar todos los campos pero solo monto_semanal editable */}
           <div className="grid gap-2">
             <InputText
               placeholder="Nombre(s)"
@@ -116,19 +157,32 @@ const PartnerForm = ({
               className="w-full"
               disabled
             />
-            <InputNumber
-              id="monto_semanal"
-              value={formData.monto_semanal}
-              onValueChange={(e) =>
-                setFormData({ ...formData, monto_semanal: e.value || 0 })
-              }
-              mode="decimal"
-              min={0}
-              className="w-full"
-              placeholder="Monto semanal"
-              useGrouping={false}
-              inputMode="numeric"
-            />
+            <div>
+              <label
+                style={{
+                  fontWeight: "600",
+                  color: "#374151",
+                  marginBottom: "0.25rem",
+                  display: "block",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Monto Semanal
+              </label>
+              <InputNumber
+                id="monto_semanal"
+                value={formData.monto_semanal}
+                onValueChange={(e) =>
+                  setFormData({ ...formData, monto_semanal: e.value || 0 })
+                }
+                mode="decimal"
+                min={0}
+                className="w-full"
+                placeholder="Monto semanal"
+                useGrouping={false}
+                inputMode="numeric"
+              />
+            </div>
             <div>
               <label
                 style={{
@@ -176,55 +230,88 @@ const PartnerForm = ({
         </>
       ) : crearUsuario ? (
         <>
-          <div className="grid gap-2">
-            <InputText
-              placeholder="Nombre(s)"
-              value={userForm.name}
-              onChange={(e) =>
-                setUserForm({ ...userForm, name: e.target.value })
-              }
-              className="w-full"
-              required
-            />
-            <InputText
-              placeholder="Apellido(s)"
-              value={userForm.lastName}
-              onChange={(e) =>
-                setUserForm({ ...userForm, lastName: e.target.value })
-              }
-              className="w-full"
-              required
-            />
-            <InputText
-              placeholder="Email"
-              value={userForm.email}
-              onChange={(e) =>
-                setUserForm({ ...userForm, email: e.target.value })
-              }
-              className="w-full"
-              required
-            />
-            <InputText
-              placeholder="Teléfono"
-              value={userForm.phoneNumber}
-              onChange={(e) =>
-                setUserForm({ ...userForm, phoneNumber: e.target.value })
-              }
-              className="w-full"
-            />
-            <InputNumber
-              id="monto_semanal"
-              value={formData.monto_semanal}
-              onValueChange={(e) =>
-                setFormData({ ...formData, monto_semanal: e.value || 0 })
-              }
-              mode="decimal"
-              min={0}
-              className="w-full"
-              placeholder="Monto semanal"
-              useGrouping={false}
-              inputMode="numeric"
-            />
+          <div className="flex flex-column gap-2">
+            <div>
+              <InputText
+                placeholder="Nombre(s)"
+                value={userForm.name}
+                onChange={(e) => {
+                  setUserForm({ ...userForm, name: e.target.value });
+                  setErrors((prev) => ({ ...prev, name: "" }));
+                }}
+                className={`w-full${errors.name ? " p-invalid" : ""}`}
+                required
+              />
+              {fieldError("name")}
+            </div>
+            <div>
+              <InputText
+                placeholder="Apellido(s)"
+                value={userForm.lastName}
+                onChange={(e) => {
+                  setUserForm({ ...userForm, lastName: e.target.value });
+                  setErrors((prev) => ({ ...prev, lastName: "" }));
+                }}
+                className={`w-full${errors.lastName ? " p-invalid" : ""}`}
+                required
+              />
+              {fieldError("lastName")}
+            </div>
+            <div>
+              <InputText
+                placeholder="Email"
+                value={userForm.email}
+                onChange={(e) => {
+                  setUserForm({ ...userForm, email: e.target.value });
+                  setErrors((prev) => ({ ...prev, email: "" }));
+                }}
+                className={`w-full${errors.email ? " p-invalid" : ""}`}
+                required
+              />
+              {fieldError("email")}
+            </div>
+            <div>
+              <InputText
+                placeholder="Teléfono (10 dígitos)"
+                value={userForm.phoneNumber}
+                onChange={(e) => {
+                  setUserForm({ ...userForm, phoneNumber: e.target.value });
+                  setErrors((prev) => ({ ...prev, phoneNumber: "" }));
+                }}
+                className={`w-full${errors.phoneNumber ? " p-invalid" : ""}`}
+                maxLength={10}
+                keyfilter="int"
+              />
+              {fieldError("phoneNumber")}
+            </div>
+            <div>
+              <label
+                style={{
+                  fontWeight: "600",
+                  color: "#374151",
+                  marginBottom: "0.25rem",
+                  display: "block",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Monto Semanal
+              </label>
+              <InputNumber
+                id="monto_semanal"
+                value={formData.monto_semanal}
+                onValueChange={(e) => {
+                  setFormData({ ...formData, monto_semanal: e.value || 0 });
+                  setErrors((prev) => ({ ...prev, monto_semanal: "" }));
+                }}
+                mode="decimal"
+                min={50}
+                className={`w-full${errors.monto_semanal ? " p-invalid" : ""}`}
+                placeholder="Mínimo $50"
+                useGrouping={false}
+                inputMode="numeric"
+              />
+              {fieldError("monto_semanal")}
+            </div>
             <div>
               <label
                 style={{
@@ -332,7 +419,6 @@ const PartnerForm = ({
               }
               onChange={(e) => {
                 setFormData({ ...formData, id_usuario: e.value });
-                // Actualizar userForm con los datos del usuario seleccionado
                 const user = usuarios.find((u) => u.id === e.value);
                 if (user) {
                   setUserForm({
@@ -388,19 +474,32 @@ const PartnerForm = ({
           )}
 
           <div className="mb-3">
+            <label
+              style={{
+                fontWeight: "600",
+                color: "#374151",
+                marginBottom: "0.25rem",
+                display: "block",
+                fontSize: "0.875rem",
+              }}
+            >
+              Monto Semanal
+            </label>
             <InputNumber
               id="monto_semanal"
               value={formData.monto_semanal}
-              onValueChange={(e) =>
-                setFormData({ ...formData, monto_semanal: e.value || 0 })
-              }
+              onValueChange={(e) => {
+                setFormData({ ...formData, monto_semanal: e.value || 0 });
+                setErrors((prev) => ({ ...prev, monto_semanal: "" }));
+              }}
               mode="decimal"
-              min={0}
-              className="w-full"
-              placeholder="Monto semanal"
+              min={50}
+              className={`w-full${errors.monto_semanal ? " p-invalid" : ""}`}
+              placeholder="Mínimo $50"
               useGrouping={false}
               inputMode="numeric"
             />
+            {fieldError("monto_semanal")}
           </div>
 
           <div className="mb-3">
@@ -459,7 +558,7 @@ const PartnerForm = ({
         <Button
           label="Guardar"
           icon="pi pi-check"
-          onClick={onSave}
+          onClick={validateAndSave}
           severity="success"
           loading={loading}
         />

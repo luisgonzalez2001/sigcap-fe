@@ -47,7 +47,9 @@ const AbonoPrestamoForm: React.FC<AbonoPrestamoFormProps> = ({
 
   // Calcular saldo pendiente
   const saldoPendiente = prestamo
-    ? prestamo.monto_total - prestamo.monto_abonado + prestamo.intereses_mora
+    ? Number(prestamo.monto_total) -
+      Number(prestamo.monto_abonado) +
+      Number(prestamo.intereses_mora)
     : 0;
 
   // Manejar envío
@@ -58,6 +60,16 @@ const AbonoPrestamoForm: React.FC<AbonoPrestamoFormProps> = ({
         summary: "Campos requeridos",
         detail: "Por favor ingresa el monto del abono",
         life: 3000,
+      });
+      return;
+    }
+
+    if (monto > saldoPendiente) {
+      toast.current?.show({
+        severity: "warn",
+        summary: "Monto inválido",
+        detail: `El monto no puede ser mayor al saldo pendiente (${formatCurrency(saldoPendiente)})`,
+        life: 4000,
       });
       return;
     }
@@ -220,6 +232,12 @@ const AbonoPrestamoForm: React.FC<AbonoPrestamoFormProps> = ({
                 onChange={(e) => setFechaAbono(e.value as Date)}
                 dateFormat="dd/mm/yy"
                 showIcon
+                minDate={
+                  prestamo?.fecha_inicio
+                    ? new Date(prestamo.fecha_inicio)
+                    : undefined
+                }
+                maxDate={new Date()}
                 className="w-full"
               />
             </div>

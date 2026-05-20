@@ -11,12 +11,21 @@ import { TabView, TabPanel } from "primereact/tabview";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import { Toast } from "primereact/toast";
 import api from "@/services/api";
+import {
+  getNotifications,
+  deleteNotification,
+  createNotification,
+} from "@/services/notifications-api";
 import type {
   PrestamoDetalleResponse,
   AbonoPrestamo,
   HistorialPrestamo,
   EstatusPrestamo,
 } from "@/types/Prestamo";
+import type {
+  SistemaPrestamoPagadoData,
+  AbonoPrestamoData,
+} from "@/types/Notification";
 import AbonoPrestamoForm from "./AbonoPrestamoForm";
 import { useUser } from "@/context/UserContext";
 
@@ -137,6 +146,72 @@ const PrestamoDetalleDialog: React.FC<PrestamoDetalleDialogProps> = ({
     });
   };
 
+  // Eliminar notificación de préstamo liquidado para el socio
+  const eliminarNotificacionLiquidacion = async (
+    prestamoId: string,
+    socioUserId: string,
+  ) => {
+    try {
+      const response = await getNotifications(socioUserId, {
+        tipo: "sistema",
+        limit: 50,
+      });
+      const notif = response.data.find(
+        (n) =>
+          n.tipo === "sistema" &&
+          n.datos_json &&
+          (n.datos_json as SistemaPrestamoPagadoData).prestamo_id ===
+            prestamoId,
+      );
+      if (notif) {
+        await deleteNotification(notif.id, socioUserId);
+      }
+    } catch (err) {
+      console.warn("No se pudo eliminar la notificación de liquidación:", err);
+    }
+  };
+
+  // Eliminar notificación de abono y notificar cancelación al socio
+  const eliminarNotificacionAbonoYNotificar = async (
+    abonoId: string,
+    prestamoId: string,
+    socioUserId: string,
+    montoAbono: number,
+  ) => {
+    try {
+      // Eliminar la notificación original del abono si existe
+      const response = await getNotifications(socioUserId, {
+        tipo: "abono_prestamo",
+        limit: 50,
+      });
+      const notifAbono = response.data.find(
+        (n) =>
+          n.tipo === "abono_prestamo" &&
+          n.datos_json &&
+          (n.datos_json as AbonoPrestamoData).abono_id === abonoId,
+      );
+      if (notifAbono) {
+        await deleteNotification(notifAbono.id, socioUserId);
+      }
+
+      // Enviar notificación de cancelación del abono
+      await createNotification({
+        usuario_id: socioUserId,
+        tipo: "sistema",
+        titulo: "Abono eliminado",
+        mensaje: `Un abono de ${montoAbono.toLocaleString("es-MX", { style: "currency", currency: "MXN" })} ha sido eliminado de tu préstamo.`,
+        prioridad: "media",
+        datos_json: {
+          prestamo_id: prestamoId,
+          abono_id: abonoId,
+          monto: montoAbono,
+        },
+      });
+    } catch (err) {
+      console.warn("No se pudo procesar la notificación del abono:", err);
+    }
+  };
+
   // Eliminar abono
   const handleEliminarAbono = (abonoId: string) => {
     confirmDialog({
@@ -147,6 +222,24 @@ const PrestamoDetalleDialog: React.FC<PrestamoDetalleDialogProps> = ({
       accept: async () => {
         try {
           await api.delete(`/prestamos/abono/${abonoId}`);
+
+          // Eliminar notificación de préstamo liquidado si existe
+          const socioUserId = detalle?.prestamo.id_socio?.id_usuario?.id;
+          if (prestamoId && socioUserId) {
+            await eliminarNotificacionLiquidacion(prestamoId, socioUserId);
+          }
+
+          // Eliminar notificación del abono y notificar al socio
+          const abono = detalle?.abonos.find((a) => a.id === abonoId);
+          if (prestamoId && socioUserId && abono) {
+            await eliminarNotificacionAbonoYNotificar(
+              abonoId,
+              prestamoId,
+              socioUserId,
+              abono.monto,
+            );
+          }
+
           toast.current?.show({
             severity: "success",
             summary: "Éxito",
@@ -166,6 +259,22 @@ const PrestamoDetalleDialog: React.FC<PrestamoDetalleDialogProps> = ({
         }
       },
     });
+  };
+
+  // Calcular restante de cuota mensual (monto_cuota - abonos del mes actual)
+  const calcularRestanteCuota = (): number => {
+    if (!detalle) return 0;
+    const ahora = new Date();
+    const abonos_mes = detalle.abonos
+      .filter((a) => {
+        const f = new Date(a.fecha_abono);
+        return (
+          f.getFullYear() === ahora.getFullYear() &&
+          f.getMonth() === ahora.getMonth()
+        );
+      })
+      .reduce((sum, a) => sum + Number(a.monto), 0);
+    return Math.max(0, Number(detalle.prestamo.monto_cuota) - abonos_mes);
   };
 
   // Templates para tabla de abonos
@@ -211,9 +320,10 @@ const PrestamoDetalleDialog: React.FC<PrestamoDetalleDialogProps> = ({
 
   // Footer del dialog - solo mostrar acciones para admin
   const dialogFooter = isAdmin ? (
-    <div className="flex justify-content-between gap-2 flex-wrap">
-      <div>
-        {detalle?.prestamo.estatus === "activo" && (
+    <div className="flex align-items-center justify-content-between gap-2">
+      {detalle?.prestamo.estatus === "activo" ||
+      detalle?.prestamo.estatus === "vencido" ? (
+        <>
           <Button
             label="Cancelar Préstamo"
             icon="pi pi-times"
@@ -221,23 +331,38 @@ const PrestamoDetalleDialog: React.FC<PrestamoDetalleDialogProps> = ({
             outlined
             onClick={handleCancelar}
           />
-        )}
-      </div>
-      <div className="flex gap-2">
-        <Button
-          label="Cerrar"
-          icon="pi pi-times"
-          severity="secondary"
-          onClick={onHide}
-        />
-        {detalle?.prestamo.estatus === "activo" && (
+          <div className="flex gap-2 align-items-center">
+            <Button
+              label="Cerrar"
+              icon="pi pi-times"
+              severity="secondary"
+              className="hidden sm:inline-flex"
+              onClick={onHide}
+            />
+            <Button
+              label={
+                detalle?.prestamo.estatus === "vencido"
+                  ? "Registrar Abono / Liquidar"
+                  : "Registrar Abono"
+              }
+              icon="pi pi-plus"
+              severity={
+                detalle?.prestamo.estatus === "vencido" ? "warning" : undefined
+              }
+              onClick={() => setAbonoDialogVisible(true)}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="flex justify-content-end w-full">
           <Button
-            label="Registrar Abono"
-            icon="pi pi-plus"
-            onClick={() => setAbonoDialogVisible(true)}
+            label="Cerrar"
+            icon="pi pi-times"
+            severity="secondary"
+            onClick={onHide}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   ) : (
     <div className="flex justify-content-end">
@@ -517,6 +642,24 @@ const PrestamoDetalleDialog: React.FC<PrestamoDetalleDialogProps> = ({
                 </p>
                 <p className="m-0" style={{ fontWeight: "600" }}>
                   {formatCurrency(detalle.prestamo.monto_cuota)}
+                </p>
+              </div>
+              <div className="col-6 md:col-3">
+                <p
+                  className="m-0"
+                  style={{ color: "#6b7280", fontSize: "0.75rem" }}
+                >
+                  Restante de Cuota
+                </p>
+                <p
+                  className="m-0"
+                  style={{
+                    fontWeight: "600",
+                    color:
+                      calcularRestanteCuota() === 0 ? "#16a34a" : "#dc2626",
+                  }}
+                >
+                  {formatCurrency(calcularRestanteCuota())}
                 </p>
               </div>
               <div className="col-6 md:col-3">

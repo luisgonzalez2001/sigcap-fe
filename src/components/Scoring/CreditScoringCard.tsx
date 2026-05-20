@@ -10,6 +10,7 @@ import type { ScoringResult, NivelRiesgo } from "@/types/Scoring";
 
 interface CreditScoringCardProps {
   socioId: string;
+  tienePrestamoActivo?: boolean;
 }
 
 const getRiesgoConfig = (nivel: NivelRiesgo) => {
@@ -51,7 +52,10 @@ const getScoreColor = (score: number): string => {
   return "#DC2626"; // Rojo para score bajo (0-29)
 };
 
-export default function CreditScoringCard({ socioId }: CreditScoringCardProps) {
+export default function CreditScoringCard({
+  socioId,
+  tienePrestamoActivo = false,
+}: CreditScoringCardProps) {
   const [scoring, setScoring] = useState<ScoringResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -153,7 +157,7 @@ export default function CreditScoringCard({ socioId }: CreditScoringCardProps) {
           >
             {riesgoConfig.description}
           </p>
-          {scoring.monto_maximo_recomendado > 0 && (
+          {scoring.monto_maximo_recomendado > 0 && !tienePrestamoActivo && (
             <p
               className="m-0"
               style={{ fontSize: "0.75rem", color: "#059669" }}

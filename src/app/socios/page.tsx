@@ -54,10 +54,18 @@ const SociosPage = () => {
     // Cargar socios
     api.get("/partners").then((res) => setSocios(res.data));
 
-    // Cargar usuarios disponibles
+    // Cargar usuarios disponibles (sin rol admin)
     api
       .get("/partners/available-users")
-      .then((res) => setUsuarios(Array.isArray(res.data) ? res.data : []));
+      .then((res) =>
+        setUsuarios(
+          Array.isArray(res.data)
+            ? res.data.filter(
+                (u: import("@/types/UserDto").User) => u.rol !== "admin",
+              )
+            : [],
+        ),
+      );
 
     // Cargar resumen de caja semanal para obtener semanas dadas y total ahorrado
     api
@@ -156,11 +164,31 @@ const SociosPage = () => {
       }
       try {
         // Establece la contraseña por default
-        const userRes = await api.post("/auth/signup", {
+        await api.post("/auth/signup/add-user", {
           ...userForm,
-          password: "12345",
+          password: "12345678",
         });
-        const userId = userRes.data.id;
+
+        // Buscar el usuario recién creado por email — reintentar hasta 5 veces
+        // con espera incremental para dar tiempo al backend de persistir el registro
+        let createdUser: import("@/types/UserDto").User | undefined;
+        for (let attempt = 1; attempt <= 5; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 400));
+          const availableRes = await api.get<import("@/types/UserDto").User[]>(
+            "/partners/available-users",
+          );
+          createdUser = availableRes.data.find(
+            (u) => u.email === userForm.email,
+          );
+          if (createdUser?.id) break;
+        }
+
+        if (!createdUser?.id) {
+          throw new Error("No se pudo obtener el ID del usuario creado.");
+        }
+
+        const userId = createdUser.id;
+
         const createPayload: {
           id_usuario: string;
           monto_semanal: number;
@@ -179,19 +207,40 @@ const SociosPage = () => {
           detail: "Socio y usuario creados",
           life: 3000,
         });
-        // Recargar socios
-        const sociosRes = await api.get("/partners");
+        // Recargar socios y usuarios disponibles
+        const [sociosRes, usuariosRes] = await Promise.all([
+          api.get("/partners"),
+          api.get("/partners/available-users"),
+        ]);
         setSocios(sociosRes.data);
+        setUsuarios(
+          Array.isArray(usuariosRes.data)
+            ? usuariosRes.data.filter(
+                (u: import("@/types/UserDto").User) => u.rol !== "admin",
+              )
+            : [],
+        );
         hideDialog();
       } catch (error) {
-        const err = error as AxiosError<{ message?: string }>;
-        let detail =
-          err.response?.data?.message || "Error al crear socio/usuario";
-        if (err.response?.status === 409 && detail) {
-          if (detail.includes("correo electrónico")) {
+        const err = error as AxiosError<{ message?: string | string[] }>;
+        const rawMessage = err.response?.data?.message;
+        let detail: string;
+        if (Array.isArray(rawMessage)) {
+          detail = rawMessage.join("\n");
+        } else {
+          detail = rawMessage || "Error al crear socio/usuario";
+        }
+        if (err.response?.status === 409) {
+          if (
+            typeof detail === "string" &&
+            detail.includes("correo electrónico")
+          ) {
             detail =
               "El correo electrónico ya está registrado. Por favor, usa otro.";
-          } else if (detail.includes("teléfono")) {
+          } else if (
+            typeof detail === "string" &&
+            detail.includes("teléfono")
+          ) {
             detail =
               "El número de teléfono ya está registrado. Por favor, usa otro.";
           }

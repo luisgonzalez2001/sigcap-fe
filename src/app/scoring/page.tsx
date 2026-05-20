@@ -24,6 +24,7 @@ import type {
   NivelRiesgo,
 } from "@/types/Scoring";
 import ScoringCarousel from "@/components/Scoring/ScoringCarousel";
+import MlServiceStatus from "@/components/Scoring/MlServiceStatus";
 
 const riesgoOptions = [
   { label: "Todos", value: null },
@@ -318,6 +319,11 @@ const ScoringPage = () => {
         <p className="text-600 m-0">
           Resumen de scoring ML para todos los socios
         </p>
+      </div>
+
+      {/* Estado del servicio ML */}
+      <div className="mb-4">
+        <MlServiceStatus />
       </div>
 
       {/* Stats */}

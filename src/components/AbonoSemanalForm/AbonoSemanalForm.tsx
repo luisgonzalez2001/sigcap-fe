@@ -180,7 +180,10 @@ const AbonoSemanalForm = ({
             <PartnerSearchDropdown
               partners={partners}
               selectedPartner={selectedPartner}
-              onSelect={setSelectedPartner}
+              onSelect={(partner) => {
+                setSelectedPartner(partner);
+                setMonto(partner ? partner.monto_semanal : null);
+              }}
               placeholder="Seleccionar socio..."
               disabled={loading}
             />

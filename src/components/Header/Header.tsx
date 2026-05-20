@@ -238,25 +238,29 @@ const Header = () => {
           visible={sidebarVisible}
           onHide={() => setSidebarVisible(false)}
           className="w-full sm:w-80"
-        >
-          {/* Header del sidebar */}
-          <div className="mb-6 pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-3">
+          header={
+            <div className="flex align-items-center gap-3">
               <Avatar
                 label={getUserInitials()}
                 size="large"
                 shape="circle"
-                className="bg-blue-500 text-white"
+                style={{
+                  backgroundColor: "#2563EB",
+                  color: "white",
+                  flexShrink: 0,
+                }}
               />
               <div>
-                <p className="font-bold text-gray-900">{user.name}</p>
-                <p className="text-sm text-gray-600">
+                <p className="m-0 font-bold text-gray-900">
+                  {user.name} {user.lastName}
+                </p>
+                <p className="m-0 text-sm" style={{ color: "#6B7280" }}>
                   {user.rol === "admin" ? "Administrador" : "Socio"}
                 </p>
               </div>
             </div>
-          </div>
-
+          }
+        >
           {/* Menú del sidebar */}
           <Menu model={menuItems} className="w-full border-none" />
         </Sidebar>

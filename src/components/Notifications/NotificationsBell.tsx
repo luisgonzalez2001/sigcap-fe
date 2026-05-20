@@ -203,8 +203,8 @@ function NotificationItem({
         "El usuario ahora es socio de SIGCAP",
       );
 
-      // Marcar notificación como leída y recargar
-      onMarkAsRead(notification.id);
+      // Eliminar la notificación de la lista y recargar
+      onDelete(notification.id);
       onActionComplete?.();
     } catch (error) {
       const err = error as AxiosError<{ message?: string }>;
@@ -230,8 +230,8 @@ function NotificationItem({
 
       toast.showInfo("Solicitud Rechazada", "Se ha notificado al usuario");
 
-      // Marcar notificación como leída y recargar
-      onMarkAsRead(notification.id);
+      // Eliminar la notificación de la lista y recargar
+      onDelete(notification.id);
       setShowRejectDialog(false);
       setMotivoRechazo("");
       onActionComplete?.();
@@ -578,7 +578,7 @@ export function NotificationsBell() {
         </div>
 
         {/* Footer */}
-        {notifications.length > 0 && (
+        {/* {notifications.length > 0 && (
           <>
             <Divider className="my-0" />
             <div className="px-3 py-2 surface-50 border-round-bottom text-center">
@@ -593,15 +593,17 @@ export function NotificationsBell() {
               />
             </div>
           </>
-        )}
+        )} */}
 
         {/* Estado de conexión/reconexión */}
         {!isConnected && (
           <div
             className="px-3 py-2 text-sm flex align-items-center justify-content-between gap-2"
-            style={{ 
-              backgroundColor: isReconnecting ? "rgba(59, 130, 246, 0.1)" : "rgba(250, 204, 21, 0.1)",
-              color: isReconnecting ? "#2563eb" : "#b45309"
+            style={{
+              backgroundColor: isReconnecting
+                ? "rgba(59, 130, 246, 0.1)"
+                : "rgba(250, 204, 21, 0.1)",
+              color: isReconnecting ? "#2563eb" : "#b45309",
             }}
           >
             <div className="flex align-items-center gap-2">

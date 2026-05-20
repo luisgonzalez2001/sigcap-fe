@@ -23,6 +23,8 @@ const AhorrosPage = () => {
   const [selectedAbono, setSelectedAbono] = useState<CajaSemanal | null>(null);
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
+  const [mobilePage, setMobilePage] = useState(1);
+  const MOBILE_PAGE_SIZE = 10;
 
   // Cargar abonos y resumen
   const loadData = async () => {
@@ -83,10 +85,11 @@ const AhorrosPage = () => {
 
   // Formatear moneda
   const formatCurrency = (value: number) => {
-    return value.toLocaleString("es-MX", {
+    return new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: "MXN",
-    });
+      minimumFractionDigits: 2,
+    }).format(value);
   };
 
   // Handler para click en fila
@@ -288,14 +291,14 @@ const AhorrosPage = () => {
           >
             <div
               style={{
-                backgroundColor: "#F3E8FF",
+                backgroundColor: "#FEF9C3",
                 padding: "0.75rem",
                 borderRadius: "8px",
               }}
             >
               <i
-                className="pi pi-chart-bar"
-                style={{ fontSize: "1.5rem", color: "#9333EA" }}
+                className="pi pi-calendar"
+                style={{ fontSize: "1.5rem", color: "#CA8A04" }}
               ></i>
             </div>
             <div>
@@ -303,7 +306,7 @@ const AhorrosPage = () => {
                 className="mb-1"
                 style={{ color: "#6B7280", fontSize: "0.875rem" }}
               >
-                Promedio por Abono
+                Ahorrado Esta Semana
               </p>
               <p
                 className="m-0"
@@ -315,7 +318,18 @@ const AhorrosPage = () => {
               >
                 {loading
                   ? "..."
-                  : formatCurrency(resumen?.promedio_general || 0)}
+                  : formatCurrency(
+                      abonos
+                        .filter((a) => {
+                          const fecha = new Date(a.created_at);
+                          const hoy = new Date();
+                          const inicioSemana = new Date(hoy);
+                          inicioSemana.setDate(hoy.getDate() - hoy.getDay());
+                          inicioSemana.setHours(0, 0, 0, 0);
+                          return fecha >= inicioSemana;
+                        })
+                        .reduce((sum, a) => sum + Number(a.monto), 0),
+                    )}
               </p>
             </div>
           </div>
@@ -339,7 +353,22 @@ const AhorrosPage = () => {
             loading={loading}
             selectionMode="single"
             onRowClick={(e) => handleRowClick(e.data as CajaSemanal)}
-            rowClassName={() => "cursor-pointer hover:bg-gray-50"}
+            rowClassName={() => "cursor-pointer"}
+            pt={{
+              bodyRow: {
+                style: { transition: "background 0.15s" },
+                onMouseEnter: (e: React.MouseEvent<HTMLTableRowElement>) => {
+                  (
+                    e.currentTarget as HTMLTableRowElement
+                  ).style.backgroundColor = "#f3f4f6";
+                },
+                onMouseLeave: (e: React.MouseEvent<HTMLTableRowElement>) => {
+                  (
+                    e.currentTarget as HTMLTableRowElement
+                  ).style.backgroundColor = "";
+                },
+              },
+            }}
           >
             <Column
               field="id_socio.n_socio"
@@ -369,6 +398,23 @@ const AhorrosPage = () => {
               style={{ minWidth: "150px" }}
               sortable
             />
+            <Column
+              header="Editar"
+              body={(row: CajaSemanal) => (
+                <Button
+                  icon="pi pi-pencil"
+                  rounded
+                  text
+                  severity="info"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRowClick(row);
+                  }}
+                  aria-label="Editar"
+                />
+              )}
+              style={{ width: "80px" }}
+            />
           </DataTable>
         </Card>
       </div>
@@ -386,7 +432,10 @@ const AhorrosPage = () => {
                 />
                 <InputText
                   value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
+                  onChange={(e) => {
+                    setSearchValue(e.target.value);
+                    setMobilePage(1);
+                  }}
                   placeholder="Buscar por nombre o # de socio..."
                   className="w-full"
                   style={{
@@ -430,75 +479,117 @@ const AhorrosPage = () => {
               <p>No se encontraron abonos.</p>
             </div>
           ) : (
-            <div className="flex flex-column gap-3">
-              {filteredAbonos.map((abono) => (
-                <div
-                  key={abono.id}
-                  onClick={() => handleRowClick(abono)}
-                  className="p-3 border-round cursor-pointer"
-                  style={{
-                    backgroundColor: "#f9fafb",
-                    border: "1px solid #e5e7eb",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  <div className="flex align-items-center gap-3">
+            <>
+              <div className="flex flex-column gap-3">
+                {filteredAbonos
+                  .slice(
+                    (mobilePage - 1) * MOBILE_PAGE_SIZE,
+                    mobilePage * MOBILE_PAGE_SIZE,
+                  )
+                  .map((abono) => (
                     <div
-                      className="flex align-items-center justify-content-center"
+                      key={abono.id}
+                      onClick={() => handleRowClick(abono)}
+                      className="p-3 border-round cursor-pointer"
                       style={{
-                        width: "2.5rem",
-                        height: "2.5rem",
-                        borderRadius: "50%",
-                        background:
-                          "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                        color: "white",
-                        fontSize: "0.875rem",
-                        fontWeight: "bold",
+                        backgroundColor: "#f9fafb",
+                        border: "1px solid #e5e7eb",
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      {abono.id_socio?.id_usuario?.name
-                        ?.charAt(0)
-                        .toUpperCase()}
-                      {abono.id_socio?.id_usuario?.lastName
-                        ?.charAt(0)
-                        .toUpperCase()}
+                      <div className="flex align-items-center gap-3">
+                        <div
+                          className="flex align-items-center justify-content-center"
+                          style={{
+                            width: "2.5rem",
+                            height: "2.5rem",
+                            borderRadius: "50%",
+                            background:
+                              "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            color: "white",
+                            fontSize: "0.875rem",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {abono.id_socio?.id_usuario?.name
+                            ?.charAt(0)
+                            .toUpperCase()}
+                          {abono.id_socio?.id_usuario?.lastName
+                            ?.charAt(0)
+                            .toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <p
+                            className="m-0"
+                            style={{ fontWeight: "600", color: "#111827" }}
+                          >
+                            {abono.id_socio?.id_usuario?.name}{" "}
+                            {abono.id_socio?.id_usuario?.lastName}
+                          </p>
+                          <p
+                            className="m-0 mt-1"
+                            style={{ fontSize: "0.75rem", color: "#6b7280" }}
+                          >
+                            Socio #{abono.id_socio?.n_socio} •{" "}
+                            {formatDate(abono.created_at)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className="m-0"
+                            style={{
+                              fontWeight: "bold",
+                              fontSize: "1rem",
+                              color: "#16a34a",
+                            }}
+                          >
+                            {formatCurrency(abono.monto)}
+                          </p>
+                          <i
+                            className="pi pi-chevron-right mt-1"
+                            style={{ fontSize: "0.75rem", color: "#9ca3af" }}
+                          ></i>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p
-                        className="m-0"
-                        style={{ fontWeight: "600", color: "#111827" }}
-                      >
-                        {abono.id_socio?.id_usuario?.name}{" "}
-                        {abono.id_socio?.id_usuario?.lastName}
-                      </p>
-                      <p
-                        className="m-0 mt-1"
-                        style={{ fontSize: "0.75rem", color: "#6b7280" }}
-                      >
-                        Socio #{abono.id_socio?.n_socio} •{" "}
-                        {formatDate(abono.created_at)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p
-                        className="m-0"
-                        style={{
-                          fontWeight: "bold",
-                          fontSize: "1rem",
-                          color: "#16a34a",
-                        }}
-                      >
-                        {formatCurrency(abono.monto)}
-                      </p>
-                      <i
-                        className="pi pi-chevron-right mt-1"
-                        style={{ fontSize: "0.75rem", color: "#9ca3af" }}
-                      ></i>
-                    </div>
-                  </div>
+                  ))}
+              </div>
+
+              {/* Paginación mobile */}
+              {Math.ceil(filteredAbonos.length / MOBILE_PAGE_SIZE) > 1 && (
+                <div
+                  className="flex align-items-center justify-content-between mt-4 pt-3 pl-8 pr-8"
+                  style={{ borderTop: "1px solid #e5e7eb" }}
+                >
+                  <Button
+                    icon="pi pi-chevron-left"
+                    text
+                    severity="secondary"
+                    disabled={mobilePage === 1}
+                    onClick={() => setMobilePage((p) => p - 1)}
+                    aria-label="Página anterior"
+                  />
+                  <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                    Página {mobilePage} de{" "}
+                    {Math.ceil(filteredAbonos.length / MOBILE_PAGE_SIZE)}
+                    <span style={{ marginLeft: "0.5rem", color: "#9ca3af" }}>
+                      ({filteredAbonos.length} abonos)
+                    </span>
+                  </span>
+                  <Button
+                    icon="pi pi-chevron-right"
+                    text
+                    severity="secondary"
+                    disabled={
+                      mobilePage ===
+                      Math.ceil(filteredAbonos.length / MOBILE_PAGE_SIZE)
+                    }
+                    onClick={() => setMobilePage((p) => p + 1)}
+                    aria-label="Página siguiente"
+                  />
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </Card>
       </div>

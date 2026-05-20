@@ -18,7 +18,6 @@ interface ScoringCarouselProps {
 }
 
 const riesgoOptions = [
-  { label: "Todos", value: null },
   { label: "Bajo", value: "bajo" },
   { label: "Medio", value: "medio" },
   { label: "Alto", value: "alto" },
@@ -59,6 +58,8 @@ const formatDate = (dateString: string) => {
   });
 };
 
+type RiesgoFilterValue = NivelRiesgo | "";
+
 const ScoringCarousel = ({
   scorings,
   onVerDetalle,
@@ -68,7 +69,7 @@ const ScoringCarousel = ({
   recalculandoMasivo,
 }: ScoringCarouselProps) => {
   const [searchValue, setSearchValue] = useState("");
-  const [riesgoFilter, setRiesgoFilter] = useState<NivelRiesgo | null>(null);
+  const [riesgoFilter, setRiesgoFilter] = useState<RiesgoFilterValue>("");
 
   const filteredScorings = scorings.filter((s) => {
     const matchSearch =
@@ -249,8 +250,11 @@ const ScoringCarousel = ({
         <Dropdown
           value={riesgoFilter}
           options={riesgoOptions}
-          onChange={(e) => setRiesgoFilter(e.value)}
+          onChange={(e) =>
+            setRiesgoFilter((e.value ?? "") as RiesgoFilterValue)
+          }
           placeholder="Filtrar por nivel de riesgo"
+          showClear
           className="w-full"
           style={{ borderRadius: "8px" }}
         />

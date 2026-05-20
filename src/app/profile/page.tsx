@@ -426,9 +426,6 @@ const ProfilePage = () => {
             <div className="flex flex-column sm:flex-row justify-content-between align-items-start sm:align-items-center gap-3 p-3 border-round surface-100">
               <div>
                 <p className="m-0 font-semibold">Contraseña</p>
-                <p className="m-0 text-sm text-gray-500">
-                  Última actualización: Desconocida
-                </p>
               </div>
               <Button
                 label="Cambiar contraseña"

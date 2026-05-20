@@ -11,14 +11,51 @@ interface SociosTableProps {
   onNew: () => void;
   filters: import("primereact/datatable").DataTableFilterMeta;
   setFilters: (
-    filters: import("primereact/datatable").DataTableFilterMeta
+    filters: import("primereact/datatable").DataTableFilterMeta,
   ) => void;
   globalFilterValue: string;
   setGlobalFilterValue: (val: string) => void;
   dt: React.RefObject<DataTable<Partner[]>>;
-  // Mapa de resumen por n_socio para mostrar semanas dadas y total ahorrado
   resumenPorSocio?: Map<number, ResumenSocio>;
 }
+
+const exportSociosCSV = (
+  socios: Partner[],
+  resumenPorSocio?: Map<number, ResumenSocio>,
+) => {
+  const headers = [
+    "Nº Socio",
+    "Nombre",
+    "Celular",
+    "Monto Semanal",
+    "Semanas Dadas",
+    "Total Ahorrado",
+  ];
+
+  const rows = socios.map((s) => {
+    const resumen = resumenPorSocio?.get(s.n_socio);
+    const nombre = s.id_usuario
+      ? `${s.id_usuario.name} ${s.id_usuario.lastName}`
+      : "";
+    return [
+      s.n_socio,
+      `"${nombre}"`,
+      s.id_usuario?.phoneNumber || "",
+      s.monto_semanal,
+      resumen?.numero_abonos ?? 0,
+      resumen?.total_ahorrado ?? 0,
+    ].join(",");
+  });
+
+  const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "socios.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+};
 
 const SociosTable = ({
   socios,
@@ -84,7 +121,7 @@ const SociosTable = ({
           label="Exportar"
           icon="pi pi-upload"
           className="p-button-help"
-          onClick={() => dt.current?.exportCSV()}
+          onClick={() => exportSociosCSV(socios, resumenPorSocio)}
         />
       </div>
     </div>
@@ -105,11 +142,27 @@ const SociosTable = ({
         emptyMessage="No se encontraron socios."
         responsiveLayout="scroll"
         className="text-sm"
+        selectionMode="single"
+        onRowClick={(e) => onEdit(e.data as Partner)}
+        rowClassName={() => "cursor-pointer"}
+        pt={{
+          bodyRow: {
+            style: { transition: "background 0.15s" },
+            onMouseEnter: (e: React.MouseEvent<HTMLTableRowElement>) => {
+              (e.currentTarget as HTMLTableRowElement).style.backgroundColor =
+                "#f3f4f6";
+            },
+            onMouseLeave: (e: React.MouseEvent<HTMLTableRowElement>) => {
+              (e.currentTarget as HTMLTableRowElement).style.backgroundColor =
+                "";
+            },
+          },
+        }}
       >
         <Column
           field="id"
           header="Nº Socio"
-          body={(_, { rowIndex }) => rowIndex + 1}
+          body={(row) => row.n_socio.toString()}
           style={{ width: "8%" }}
         />
         <Column
@@ -165,7 +218,10 @@ const SociosTable = ({
               rounded
               text
               severity="info"
-              onClick={() => onEdit(row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(row);
+              }}
               aria-label="Editar"
             />
           )}

@@ -9,6 +9,11 @@ import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
 import api from "@/services/api";
 import type { AxiosError } from "axios";
 import type { CajaSemanal } from "@/types/CajaSemanal";
+import {
+  createNotification,
+  getNotifications,
+  deleteNotification,
+} from "@/services/notifications-api";
 
 interface AbonoSemanalUpdateFormProps {
   visible: boolean;
@@ -60,6 +65,55 @@ const AbonoSemanalUpdateForm = ({
         try {
           await api.delete(`/caja-semanal/${abono.id}`);
 
+          const socioUserId = abono.id_socio?.id_usuario?.id;
+
+          if (socioUserId) {
+            // Eliminar notificaciones relacionadas con este abono
+            try {
+              const notificationsRes = await getNotifications(socioUserId, {
+                limit: 100,
+              });
+              const relacionadas = notificationsRes.data.filter((n) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const datos = n.datos_json as any;
+                return (
+                  datos?.caja_semanal_id === abono.id ||
+                  (n.tipo === "abono_semanal" && datos?.monto === abono.monto)
+                );
+              });
+              await Promise.allSettled(
+                relacionadas.map((n) => deleteNotification(n.id, socioUserId)),
+              );
+            } catch {
+              // Silencioso: no bloquear si falla la búsqueda/eliminación
+            }
+
+            // Notificar al socio de la cancelación del abono
+            try {
+              const monto = Number(abono.monto).toLocaleString("es-MX", {
+                style: "currency",
+                currency: "MXN",
+              });
+              const fecha = new Date(abono.created_at).toLocaleDateString(
+                "es-MX",
+              );
+              await createNotification({
+                usuario_id: socioUserId,
+                tipo: "sistema",
+                titulo: "Abono cancelado",
+                mensaje: `Tu abono de ${monto} registrado el ${fecha} ha sido cancelado por un administrador.`,
+                prioridad: "media",
+                datos_json: {
+                  abono_id: abono.id,
+                  monto: abono.monto,
+                  fecha: abono.created_at,
+                },
+              });
+            } catch {
+              // Silencioso: no bloquear si falla la notificación
+            }
+          }
+
           toast.current?.show({
             severity: "success",
             summary: "Éxito",
@@ -97,11 +151,11 @@ const AbonoSemanalUpdateForm = ({
       return;
     }
 
-    if (!monto || monto < 1) {
+    if (!monto || monto < 50) {
       toast.current?.show({
         severity: "warn",
         summary: "Atención",
-        detail: "El monto debe ser mayor a 0",
+        detail: "El monto debe ser mayor a 50",
         life: 3000,
       });
       return;
@@ -162,7 +216,7 @@ const AbonoSemanalUpdateForm = ({
           label="Cancelar"
           icon="pi pi-times"
           onClick={handleHide}
-          className="p-button-text"
+          className="p-button-text hidden sm:inline-flex"
           disabled={loading}
         />
         <Button
@@ -184,7 +238,7 @@ const AbonoSemanalUpdateForm = ({
   return (
     <>
       <Toast ref={toast} />
-      <ConfirmDialog />
+      <ConfirmDialog style={{ width: "90vw", maxWidth: "400px" }} />
       <Dialog
         header={
           <div className="flex align-items-center gap-2">
@@ -309,7 +363,7 @@ const AbonoSemanalUpdateForm = ({
               mode="currency"
               currency="MXN"
               locale="es-MX"
-              min={1}
+              min={50}
               placeholder="Ingresa el monto"
               disabled={loading}
               className="w-full"

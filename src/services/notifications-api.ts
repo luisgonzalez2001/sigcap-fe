@@ -140,6 +140,20 @@ export async function deleteNotification(
 }
 
 /**
+ * Crear/enviar una notificación a un usuario
+ */
+export async function createNotification(payload: {
+    usuario_id: string;
+    tipo: string;
+    titulo: string;
+    mensaje: string;
+    prioridad?: "baja" | "media" | "alta";
+    datos_json?: Record<string, unknown>;
+}): Promise<void> {
+    await notificationsApi.post("/", payload);
+}
+
+/**
  * Health check del servicio de notificaciones
  */
 export async function checkNotificationsHealth(): Promise<boolean> {

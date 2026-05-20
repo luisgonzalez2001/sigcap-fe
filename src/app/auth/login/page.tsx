@@ -95,6 +95,17 @@ function LoginForm() {
       return;
     }
 
+    if (loginMethod === "phone") {
+      const digits = identifier.replace(/\D/g, "");
+      if (digits.length !== 10) {
+        setErrorMessage(
+          "El número de teléfono debe tener exactamente 10 dígitos",
+        );
+        setLoading(false);
+        return;
+      }
+    }
+
     if (!password.trim()) {
       setErrorMessage("Ingresa tu contraseña");
       setLoading(false);
